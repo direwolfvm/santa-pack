@@ -14,6 +14,10 @@ app.use(express.json());
 app.use('/api/presents', presentsRoutes);
 app.use('/api/families', familiesRoutes);
 
+app.get('/', (req, res) => {
+    res.send('Santa Pack API is running!');
+});
+
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
