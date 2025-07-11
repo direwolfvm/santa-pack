@@ -6,7 +6,7 @@ class FamiliesController {
     async createFamily(req, res) {
         const { name } = req.body;
         const { data, error } = await this.supabase
-            .from('families')
+            .from('family')
             .insert([{ name }]);
 
         if (error) {
@@ -17,7 +17,7 @@ class FamiliesController {
 
     async getFamilies(req, res) {
         const { data, error } = await this.supabase
-            .from('families')
+            .from('family')
             .select('*');
 
         if (error) {
