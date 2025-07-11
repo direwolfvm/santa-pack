@@ -40,6 +40,7 @@
         const option = document.createElement('option');
         option.value = r.id;
         option.textContent = `${r.name} - ${r.stage}`;
+        option.dataset.stage = r.stage;
         select.appendChild(option);
       });
       container.appendChild(select);
@@ -50,8 +51,10 @@
       const select = document.getElementById('giftRoundSelect');
       if (!select) return;
       const giftRoundId = select.value;
-      const giftRoundName = select.options[select.selectedIndex].textContent;
-      window.location.href = `people.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${giftRoundId}&giftRound=${encodeURIComponent(giftRoundName)}`;
+      const option = select.options[select.selectedIndex];
+      const giftRoundName = option.textContent;
+      const stage = option.dataset.stage;
+      window.location.href = `people.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${giftRoundId}&giftRound=${encodeURIComponent(giftRoundName)}&stage=${encodeURIComponent(stage)}`;
     });
 
     document.getElementById('giftRoundForm').addEventListener('submit', async (e) => {
