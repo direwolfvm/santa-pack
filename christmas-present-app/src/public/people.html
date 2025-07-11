@@ -6,7 +6,16 @@
 </head>
 <body>
   <h1 id="title">People</h1>
+  <p id="instructions">Select your name or add yourself below.</p>
   <div id="peopleContainer">Loading...</div>
+  <button id="goToPresents" disabled>See Presents</button>
+
+  <h2>Add Person</h2>
+  <form id="personForm">
+    <label for="personName">Name:</label>
+    <input type="text" id="personName" required />
+    <button type="submit">Add Person</button>
+  </form>
   <script>
     const params = new URLSearchParams(window.location.search);
     const familyId = params.get('familyId');
@@ -17,19 +26,44 @@
       const res = await fetch(`/api/families/${familyId}/people`);
       const people = await res.json();
       const container = document.getElementById('peopleContainer');
+      const goButton = document.getElementById('goToPresents');
       container.innerHTML = '';
       if (people.length === 0) {
-        container.textContent = 'No people yet.';
+        container.textContent = 'No people yet. Add someone below.';
+        goButton.disabled = true;
         return;
       }
-      const ul = document.createElement('ul');
+      const select = document.createElement('select');
+      select.id = 'personSelect';
       people.forEach(p => {
-        const li = document.createElement('li');
-        li.textContent = p.name;
-        ul.appendChild(li);
+        const option = document.createElement('option');
+        option.value = p.id;
+        option.textContent = p.name;
+        select.appendChild(option);
       });
-      container.appendChild(ul);
+      container.appendChild(select);
+      goButton.disabled = false;
     }
+
+    document.getElementById('goToPresents').addEventListener('click', () => {
+      const select = document.getElementById('personSelect');
+      if (!select) return;
+      const personId = select.value;
+      const personName = select.options[select.selectedIndex].textContent;
+      window.location.href = `presents.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&personId=${personId}&personName=${encodeURIComponent(personName)}`;
+    });
+
+    document.getElementById('personForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('personName').value;
+      await fetch(`/api/families/${familyId}/people`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      document.getElementById('personName').value = '';
+      loadPeople();
+    });
 
     loadPeople();
   </script>
