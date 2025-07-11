@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Gift Rounds</title>
+</head>
+<body>
+  <h1 id="title">Gift Rounds</h1>
+  <div id="giftRoundsContainer"></div>
+  <h2>Create New Gift Round</h2>
+  <form id="giftRoundForm">
+    <label for="giftRoundName">Gift Round Name:</label>
+    <input type="text" id="giftRoundName" required />
+    <button type="submit">Create Gift Round</button>
+  </form>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const familyId = params.get('familyId');
+    const familyName = params.get('familyName');
+    document.getElementById('title').textContent = `Gift Rounds for ${familyName}`;
+
+    async function loadGiftRounds() {
+      const res = await fetch(`/api/families/${familyId}/gift-rounds`);
+      const rounds = await res.json();
+      const container = document.getElementById('giftRoundsContainer');
+      container.innerHTML = '';
+      if (rounds.length === 0) {
+        container.textContent = 'No gift rounds yet.';
+        return;
+      }
+      const ul = document.createElement('ul');
+      rounds.forEach(r => {
+        const li = document.createElement('li');
+        li.textContent = r.name;
+        ul.appendChild(li);
+      });
+      container.appendChild(ul);
+    }
+
+    document.getElementById('giftRoundForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('giftRoundName').value;
+      await fetch(`/api/families/${familyId}/gift-rounds`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      document.getElementById('giftRoundName').value = '';
+      loadGiftRounds();
+    });
+
+    loadGiftRounds();
+  </script>
+</body>
+</html>
