@@ -8,8 +8,8 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error('SUPABASE_URL and SUPABASE_KEY must be set in .env');
 }
 
-console.log('SUPABASE_URL:', supabaseUrl);
-console.log('SUPABASE_KEY:', supabaseKey);
+// console.log('SUPABASE_URL:', supabaseUrl);
+// console.log('SUPABASE_KEY:', supabaseKey);
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
