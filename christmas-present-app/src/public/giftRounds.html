@@ -6,7 +6,8 @@
 </head>
 <body>
   <h1 id="title">Gift Rounds</h1>
-  <div id="giftRoundsContainer"></div>
+  <div id="giftRoundsContainer">Loading...</div>
+  <button id="goToPeople" disabled>Go to People</button>
   <h2>Create New Gift Round</h2>
   <form id="giftRoundForm">
     <label for="giftRoundName">Gift Round Name:</label>
@@ -23,19 +24,35 @@
       const res = await fetch(`/api/families/${familyId}/gift-rounds`);
       const rounds = await res.json();
       const container = document.getElementById('giftRoundsContainer');
+      const goButton = document.getElementById('goToPeople');
+
       container.innerHTML = '';
+
       if (rounds.length === 0) {
         container.textContent = 'No gift rounds yet.';
+        goButton.disabled = true;
         return;
       }
-      const ul = document.createElement('ul');
+
+      const select = document.createElement('select');
+      select.id = 'giftRoundSelect';
       rounds.forEach(r => {
-        const li = document.createElement('li');
-        li.textContent = r.name;
-        ul.appendChild(li);
+        const option = document.createElement('option');
+        option.value = r.id;
+        option.textContent = `${r.name} - ${r.stage}`;
+        select.appendChild(option);
       });
-      container.appendChild(ul);
+      container.appendChild(select);
+      goButton.disabled = false;
     }
+
+    document.getElementById('goToPeople').addEventListener('click', () => {
+      const select = document.getElementById('giftRoundSelect');
+      if (!select) return;
+      const giftRoundId = select.value;
+      const giftRoundName = select.options[select.selectedIndex].textContent;
+      window.location.href = `people.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${giftRoundId}&giftRound=${encodeURIComponent(giftRoundName)}`;
+    });
 
     document.getElementById('giftRoundForm').addEventListener('submit', async (e) => {
       e.preventDefault();
