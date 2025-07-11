@@ -11,7 +11,7 @@ class PresentsController {
         if (cloakedName !== undefined) insertData.cloaked_name = cloakedName;
         if (familyId) insertData.family = familyId;
         const { data, error } = await this.supabase
-            .from('presents')
+            .from('present')
             .insert([insertData]);
 
         if (error) {
@@ -22,7 +22,7 @@ class PresentsController {
 
     async getPresents(req, res) {
         const { giver, receiver, familyId } = req.query;
-        let query = this.supabase.from('presents').select('*');
+        let query = this.supabase.from('present').select('*');
         if (giver) query = query.eq('giver', giver);
         if (receiver) query = query.eq('receiver', receiver);
         if (familyId) query = query.eq('family', familyId);
@@ -40,7 +40,7 @@ class PresentsController {
         const updates = { title, description };
         if (cloakedName !== undefined) updates.cloaked_name = cloakedName;
         const { data, error } = await this.supabase
-            .from('presents')
+            .from('present')
             .update(updates)
             .eq('id', id);
 
@@ -53,7 +53,7 @@ class PresentsController {
     async deletePresent(req, res) {
         const { id } = req.params;
         const { data, error } = await this.supabase
-            .from('presents')
+            .from('present')
             .delete()
             .eq('id', id);
 
