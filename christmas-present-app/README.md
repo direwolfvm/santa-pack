@@ -33,8 +33,9 @@ The Christmas Present App is a multi-user application designed to enhance the ex
 ### Configuration
 1. Create a `.env` file in the root directory and add your Supabase credentials:
    ```
-   SUPABASE_URL=your_supabase_url
-   SUPABASE_ANON_KEY=your_supabase_anon_key
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   PORT=3000
    ```
 
 ### Running the Application
