@@ -7,10 +7,51 @@
 <body>
   <h1>Welcome to Santa Pack</h1>
   <p>Create your first family to begin planning gift exchanges.</p>
-  <form method="POST" action="/api/families">
+  <h2>Families</h2>
+  <div id="familiesContainer">Loading...</div>
+
+  <h2>Create New Family</h2>
+  <form id="familyForm">
     <label for="familyName">Family Name:</label>
-    <input type="text" id="familyName" name="name" required />
+    <input type="text" id="familyName" required />
     <button type="submit">Create Family</button>
   </form>
+
+  <script>
+    async function loadFamilies() {
+      const res = await fetch('/api/families');
+      const families = await res.json();
+      const container = document.getElementById('familiesContainer');
+      container.innerHTML = '';
+      if (families.length === 0) {
+        container.textContent = 'No families yet.';
+        return;
+      }
+      const ul = document.createElement('ul');
+      families.forEach(f => {
+        const li = document.createElement('li');
+        const link = document.createElement('a');
+        link.href = `giftRounds.html?familyId=${f.id}&familyName=${encodeURIComponent(f.name)}`;
+        link.textContent = f.name;
+        li.appendChild(link);
+        ul.appendChild(li);
+      });
+      container.appendChild(ul);
+    }
+
+    document.getElementById('familyForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('familyName').value;
+      await fetch('/api/families', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      document.getElementById('familyName').value = '';
+      loadFamilies();
+    });
+
+    loadFamilies();
+  </script>
 </body>
 </html>
