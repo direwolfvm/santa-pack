@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const PresentsController = require('../controllers/presentsController');
+const supabase = require('../db/supabaseClient');
 
-const presentsController = new PresentsController();
+const presentsController = new PresentsController(supabase);
 
 // Route to create a present
 router.post('/', presentsController.createPresent.bind(presentsController));
