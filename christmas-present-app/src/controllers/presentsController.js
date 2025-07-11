@@ -54,4 +54,4 @@ class PresentsController {
     }
 }
 
-export default PresentsController;
+module.exports = PresentsController;
