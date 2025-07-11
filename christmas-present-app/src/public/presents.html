@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Presents</title>
+</head>
+<body>
+  <h1 id="title">Presents</h1>
+  <div id="placeholder">Loading...</div>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const personName = params.get('personName');
+    document.getElementById('title').textContent = `Presents for ${personName}`;
+    document.getElementById('placeholder').textContent = `Here we will show presents for ${personName}.`;
+  </script>
+</body>
+</html>
