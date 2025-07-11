@@ -6,12 +6,102 @@
 </head>
 <body>
   <h1 id="title">Presents</h1>
-  <div id="placeholder">Loading...</div>
+
+  <h2>Family Members</h2>
+  <table border="1">
+    <thead>
+      <tr><th>Name</th></tr>
+    </thead>
+    <tbody id="peopleTableBody"></tbody>
+  </table>
+
+  <h2>Your Presents</h2>
+  <table border="1">
+    <thead>
+      <tr>
+        <th>Receiver</th>
+        <th>Name</th>
+        <th>Description</th>
+        <th>Cloaked Name</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="presentsTableBody"></tbody>
+  </table>
+
   <script>
     const params = new URLSearchParams(window.location.search);
-    const personName = params.get('personName');
-    document.getElementById('title').textContent = `Presents for ${personName}`;
-    document.getElementById('placeholder').textContent = `Here we will show presents for ${personName}.`;
+    const familyId = params.get('familyId');
+    const familyName = params.get('familyName');
+    const giverId = params.get('personId');
+    const giverName = params.get('personName');
+
+    document.getElementById('title').textContent = `Presents for ${giverName}`;
+
+    async function loadPeople() {
+      const res = await fetch(`/api/families/${familyId}/people`);
+      const people = await res.json();
+      const body = document.getElementById('peopleTableBody');
+      body.innerHTML = '';
+      people.forEach(p => {
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.textContent = p.name;
+        row.appendChild(cell);
+        body.appendChild(row);
+      });
+      loadPresents(people);
+    }
+
+    async function loadPresents(people) {
+      const body = document.getElementById('presentsTableBody');
+      body.innerHTML = '';
+      for (const p of people) {
+        const res = await fetch(`/api/presents?giver=${giverId}&receiver=${p.id}&familyId=${familyId}`);
+        const data = await res.json();
+        const present = data[0] || {};
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${p.name}</td>
+          <td><input data-field="title" value="${present.title || ''}"></td>
+          <td><input data-field="description" value="${present.description || ''}"></td>
+          <td><input data-field="cloaked" value="${present.cloaked_name || ''}"></td>
+          <td><button data-id="${present.id || ''}" data-receiver="${p.id}">Save</button></td>
+        `;
+        body.appendChild(row);
+      }
+    }
+
+    document.getElementById('presentsTableBody').addEventListener('click', async (e) => {
+      if (e.target.tagName !== 'BUTTON') return;
+      const row = e.target.closest('tr');
+      const receiverId = e.target.dataset.receiver;
+      const id = e.target.dataset.id;
+      const title = row.querySelector('input[data-field="title"]').value;
+      const description = row.querySelector('input[data-field="description"]').value;
+      const cloaked = row.querySelector('input[data-field="cloaked"]').value;
+
+      if (id) {
+        await fetch(`/api/presents/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, description, cloakedName: cloaked })
+        });
+      } else {
+        const res = await fetch('/api/presents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, description, cloakedName: cloaked, giver: giverId, receiver: receiverId, familyId })
+        });
+        const created = await res.json();
+        if (created && created[0]) {
+          e.target.dataset.id = created[0].id;
+        }
+      }
+    });
+
+    loadPeople();
   </script>
 </body>
 </html>
