@@ -31,10 +31,10 @@ The Christmas Present App is a multi-user application designed to enhance the ex
    ```
 
 ### Configuration
-1. Create a `.env` file in the root directory and add your Supabase credentials:
+1. Copy `.env.example` to `.env` and adjust the Supabase credentials if needed:
    ```
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   NEXT_PUBLIC_SUPABASE_URL=https://nlcisvrrkypadyjzsfnj.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sY2lzdnJya3lwYWR5anpzZm5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNDUzMTAsImV4cCI6MjA2NzgyMTMxMH0.QURkxMU1XcS7TfO1MFcs5wC3-A4Beon1Fc8A97QgJU4
    PORT=3000
    ```
 
@@ -46,10 +46,14 @@ npm start
 The server will start on `http://localhost:3000`.
 
 ### API Endpoints
-- `POST /presents` - Create a new present
-- `GET /presents` - Retrieve all presents
-- `PUT /presents/:id` - Update a present
-- `DELETE /presents/:id` - Delete a present
+- `POST /api/presents` - Create a new present
+- `GET /api/presents` - Retrieve all presents
+- `PUT /api/presents/:id` - Update a present
+- `DELETE /api/presents/:id` - Delete a present
+- `GET /api/families` - Retrieve all families
+- `POST /api/families` - Create a family
+- `GET /api/families/:familyId/gift-rounds` - Retrieve gift rounds for a family
+- `POST /api/families/:familyId/gift-rounds` - Create a gift round for a family
 
 ## Contributing
 Contributions are welcome! Please open an issue or submit a pull request for any enhancements or bug fixes.
