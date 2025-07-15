@@ -20,6 +20,7 @@
     const params = new URLSearchParams(window.location.search);
     const familyId = params.get('familyId');
     const familyName = params.get('familyName');
+    const giftRoundId = params.get('giftRoundId');
     const giftRoundStage = params.get('stage');
     document.getElementById('title').textContent = `People in ${familyName}`;
 
@@ -52,7 +53,7 @@
       const personId = select.value;
       const personName = select.options[select.selectedIndex].textContent;
       const base = giftRoundStage === 'guessing' ? 'guesses.html' : 'presents.html';
-      window.location.href = `${base}?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&personId=${personId}&personName=${encodeURIComponent(personName)}`;
+      window.location.href = `${base}?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${giftRoundId}&personId=${personId}&personName=${encodeURIComponent(personName)}`;
     });
 
     document.getElementById('personForm').addEventListener('submit', async (e) => {

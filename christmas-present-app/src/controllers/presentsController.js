@@ -4,12 +4,12 @@ class PresentsController {
     }
 
     async createPresent(req, res) {
-        const { title, description, giver, receiver, cloakedName, familyId } = req.body;
-        const insertData = { title, description };
+        const { name, description, giver, receiver, cloakedName, giftRoundId } = req.body;
+        const insertData = { name, description };
         if (giver) insertData.giver = giver;
         if (receiver) insertData.receiver = receiver;
         if (cloakedName !== undefined) insertData.cloaked_name = cloakedName;
-        if (familyId) insertData.family = familyId;
+        if (giftRoundId) insertData.gift_round = giftRoundId;
         const { data, error } = await this.supabase
             .from('present')
             .insert([insertData]);
@@ -21,11 +21,11 @@ class PresentsController {
     }
 
     async getPresents(req, res) {
-        const { giver, receiver, familyId } = req.query;
+        const { giver, receiver, giftRoundId } = req.query;
         let query = this.supabase.from('present').select('*');
         if (giver) query = query.eq('giver', giver);
         if (receiver) query = query.eq('receiver', receiver);
-        if (familyId) query = query.eq('family', familyId);
+        if (giftRoundId) query = query.eq('gift_round', giftRoundId);
         const { data, error } = await query;
 
         if (error) {
@@ -36,8 +36,8 @@ class PresentsController {
 
     async updatePresent(req, res) {
         const { id } = req.params;
-        const { title, description, cloakedName } = req.body;
-        const updates = { title, description };
+        const { name, description, cloakedName } = req.body;
+        const updates = { name, description };
         if (cloakedName !== undefined) updates.cloaked_name = cloakedName;
         const { data, error } = await this.supabase
             .from('present')

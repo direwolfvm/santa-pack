@@ -33,6 +33,7 @@
     const params = new URLSearchParams(window.location.search);
     const familyId = params.get('familyId');
     const familyName = params.get('familyName');
+    const giftRoundId = params.get('giftRoundId');
     const giverId = params.get('personId');
     const giverName = params.get('personName');
 
@@ -57,14 +58,14 @@
       const body = document.getElementById('presentsTableBody');
       body.innerHTML = '';
       for (const p of people) {
-        const res = await fetch(`/api/presents?giver=${giverId}&receiver=${p.id}&familyId=${familyId}`);
+        const res = await fetch(`/api/presents?giver=${giverId}&receiver=${p.id}&giftRoundId=${giftRoundId}`);
         const data = await res.json();
         const present = data[0] || {};
 
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${p.name}</td>
-          <td><input data-field="title" value="${present.title || ''}"></td>
+          <td><input data-field="name" value="${present.name || ''}"></td>
           <td><input data-field="description" value="${present.description || ''}"></td>
           <td><input data-field="cloaked" value="${present.cloaked_name || ''}"></td>
           <td><button data-id="${present.id || ''}" data-receiver="${p.id}">Save</button></td>
@@ -78,7 +79,7 @@
       const row = e.target.closest('tr');
       const receiverId = e.target.dataset.receiver;
       const id = e.target.dataset.id;
-      const title = row.querySelector('input[data-field="title"]').value;
+      const name = row.querySelector('input[data-field="name"]').value;
       const description = row.querySelector('input[data-field="description"]').value;
       const cloaked = row.querySelector('input[data-field="cloaked"]').value;
 
@@ -86,13 +87,13 @@
         await fetch(`/api/presents/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, description, cloakedName: cloaked })
+          body: JSON.stringify({ name, description, cloakedName: cloaked })
         });
       } else {
         const res = await fetch('/api/presents', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, description, cloakedName: cloaked, giver: giverId, receiver: receiverId, familyId })
+          body: JSON.stringify({ name, description, cloakedName: cloaked, giver: giverId, receiver: receiverId, giftRoundId })
         });
         const created = await res.json();
         if (created && created[0]) {
