@@ -45,6 +45,11 @@ npm start
 ```
 The server will start on `http://localhost:3000`.
 
+If your environment requires an outbound HTTP(S) proxy, set `HTTP_PROXY` or
+`HTTPS_PROXY` (or `GLOBAL_AGENT_HTTP_PROXY`) before starting the server. The
+application uses `global-agent` to route requests through the proxy when these
+variables are present.
+
 ### API Endpoints
 - `POST /api/presents` - Create a new present
 - `GET /api/presents` - Retrieve all presents
