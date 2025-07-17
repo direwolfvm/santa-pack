@@ -1,0 +1,25 @@
+body {
+  margin: 0;
+  padding: 1rem;
+  font-family: Arial, sans-serif;
+  color: black;
+  background-color: #ffffff;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,0,0,0.1) 0, rgba(255,0,0,0.1) 10px, transparent 10px, transparent 20px),
+    repeating-linear-gradient(-45deg, rgba(0,128,0,0.1) 0, rgba(0,128,0,0.1) 10px, transparent 10px, transparent 20px);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: black;
+}
+
+label {
+  display: inline-block;
+  margin-top: 0.5rem;
+}
+
+input, button {
+  margin-top: 0.25rem;
+}
