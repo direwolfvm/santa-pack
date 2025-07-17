@@ -7,14 +7,6 @@
 <body>
   <h1 id="title">Presents</h1>
 
-  <h2>Family Members</h2>
-  <table border="1">
-    <thead>
-      <tr><th>Name</th></tr>
-    </thead>
-    <tbody id="peopleTableBody"></tbody>
-  </table>
-
   <h2>Your Presents</h2>
   <table border="1">
     <thead>
@@ -32,7 +24,6 @@
   <script>
     const params = new URLSearchParams(window.location.search);
     const familyId = params.get('familyId');
-    const familyName = params.get('familyName');
     const giftRoundId = params.get('giftRoundId');
     const giverId = params.get('personId');
     const giverName = params.get('personName');
@@ -41,16 +32,8 @@
 
     async function loadPeople() {
       const res = await fetch(`/api/families/${familyId}/people`);
-      const people = await res.json();
-      const body = document.getElementById('peopleTableBody');
-      body.innerHTML = '';
-      people.forEach(p => {
-        const row = document.createElement('tr');
-        const cell = document.createElement('td');
-        cell.textContent = p.name;
-        row.appendChild(cell);
-        body.appendChild(row);
-      });
+      let people = await res.json();
+      people = people.filter(p => p.id !== parseInt(giverId, 10));
       loadPresents(people);
     }
 
