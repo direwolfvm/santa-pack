@@ -21,6 +21,9 @@ router.get('/:familyId/gift-rounds', giftRoundsController.getGiftRounds.bind(gif
 // Create a gift round for a family
 router.post('/:familyId/gift-rounds', giftRoundsController.createGiftRound.bind(giftRoundsController));
 
+// Update a gift round's stage
+router.put('/gift-rounds/:giftRoundId', giftRoundsController.updateGiftRoundStage.bind(giftRoundsController));
+
 // List people for a family
 router.get('/:familyId/people', peopleController.getPeople.bind(peopleController));
 

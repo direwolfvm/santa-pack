@@ -8,7 +8,6 @@
 <body>
   <h1 id="title">Gift Rounds</h1>
   <div id="giftRoundsContainer">Loading...</div>
-  <button id="goToPeople" disabled>Go to People</button>
   <h2>Create New Gift Round</h2>
   <form id="giftRoundForm">
     <label for="giftRoundName">Gift Round Name:</label>
@@ -25,38 +24,65 @@
       const res = await fetch(`/api/families/${familyId}/gift-rounds`);
       const rounds = await res.json();
       const container = document.getElementById('giftRoundsContainer');
-      const goButton = document.getElementById('goToPeople');
 
       container.innerHTML = '';
 
       if (rounds.length === 0) {
         container.textContent = 'No gift rounds yet.';
-        goButton.disabled = true;
         return;
       }
 
-      const select = document.createElement('select');
-      select.id = 'giftRoundSelect';
-      rounds.forEach(r => {
-        const option = document.createElement('option');
-        option.value = r.id;
-        option.textContent = `${r.name} - ${r.stage}`;
-        option.dataset.stage = r.stage;
-        select.appendChild(option);
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const headRow = document.createElement('tr');
+      ['Name', 'Stage', 'Actions'].forEach(text => {
+        const th = document.createElement('th');
+        th.textContent = text;
+        headRow.appendChild(th);
       });
-      container.appendChild(select);
-      goButton.disabled = false;
-    }
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+      const tbody = document.createElement('tbody');
 
-    document.getElementById('goToPeople').addEventListener('click', () => {
-      const select = document.getElementById('giftRoundSelect');
-      if (!select) return;
-      const giftRoundId = select.value;
-      const option = select.options[select.selectedIndex];
-      const giftRoundName = option.textContent;
-      const stage = option.dataset.stage;
-      window.location.href = `people.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${giftRoundId}&giftRound=${encodeURIComponent(giftRoundName)}&stage=${encodeURIComponent(stage)}`;
-    });
+      rounds.forEach(r => {
+        const row = document.createElement('tr');
+        const nameTd = document.createElement('td');
+        nameTd.textContent = r.name;
+        row.appendChild(nameTd);
+
+        const stageTd = document.createElement('td');
+        stageTd.textContent = r.stage;
+        row.appendChild(stageTd);
+
+        const actionsTd = document.createElement('td');
+
+        const goBtn = document.createElement('button');
+        goBtn.textContent = 'Go to People';
+        goBtn.addEventListener('click', () => {
+          window.location.href = `people.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${r.id}&stage=${encodeURIComponent(r.stage)}`;
+        });
+        actionsTd.appendChild(goBtn);
+
+        const switchBtn = document.createElement('button');
+        switchBtn.textContent = r.stage === 'giving' ? 'Switch to Guessing' : 'Switch to Giving';
+        switchBtn.addEventListener('click', async () => {
+          const newStage = r.stage === 'giving' ? 'guessing' : 'giving';
+          await fetch(`/api/families/gift-rounds/${r.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stage: newStage })
+          });
+          loadGiftRounds();
+        });
+        actionsTd.appendChild(switchBtn);
+
+        row.appendChild(actionsTd);
+        tbody.appendChild(row);
+      });
+
+      table.appendChild(tbody);
+      container.appendChild(table);
+    }
 
     document.getElementById('giftRoundForm').addEventListener('submit', async (e) => {
       e.preventDefault();
