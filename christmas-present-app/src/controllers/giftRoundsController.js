@@ -8,7 +8,7 @@ class GiftRoundsController {
         const { name } = req.body;
         const { data, error } = await this.supabase
             .from('gift_round')
-            .insert([{ name, family: familyId }]);
+            .insert([{ name, family: familyId, stage: 'giving' }]);
 
         if (error) {
             return res.status(400).json({ error: error.message });
@@ -22,6 +22,21 @@ class GiftRoundsController {
             .from('gift_round')
             .select('*')
             .eq('family', familyId);
+
+        if (error) {
+            return res.status(400).json({ error: error.message });
+        }
+        res.status(200).json(data);
+    }
+
+    async updateGiftRoundStage(req, res) {
+        const { id } = req.params;
+        const { stage } = req.body;
+        const { data, error } = await this.supabase
+            .from('gift_round')
+            .update({ stage })
+            .eq('id', id)
+            .select();
 
         if (error) {
             return res.status(400).json({ error: error.message });
