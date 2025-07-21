@@ -16,6 +16,7 @@
         <th>Cloaked Name</th>
         <th>Name</th>
         <th>Description</th>
+        <th>Actual Giver</th>
         <th>Guess Giver</th>
         <th>Action</th>
       </tr>
@@ -60,6 +61,12 @@
         descCell.classList.add('hidden', 'desc');
         row.appendChild(descCell);
 
+        const giverCell = document.createElement('td');
+        const giverName = others.find(o => String(o.id) === String(p.giver));
+        giverCell.textContent = giverName ? giverName.name : '';
+        giverCell.classList.add('hidden', 'giver');
+        row.appendChild(giverCell);
+
         const guessCell = document.createElement('td');
         const select = document.createElement('select');
         const blank = document.createElement('option');
@@ -81,6 +88,7 @@
         btn.addEventListener('click', () => {
           nameCell.classList.remove('hidden');
           descCell.classList.remove('hidden');
+          giverCell.classList.remove('hidden');
           btn.disabled = true;
         });
         actionCell.appendChild(btn);
@@ -91,7 +99,7 @@
     }
 
     document.getElementById('revealAll').addEventListener('click', () => {
-      document.querySelectorAll('#presentsBody .name, #presentsBody .desc').forEach(el => el.classList.remove('hidden'));
+      document.querySelectorAll('#presentsBody .name, #presentsBody .desc, #presentsBody .giver').forEach(el => el.classList.remove('hidden'));
       document.querySelectorAll('#presentsBody button').forEach(btn => btn.disabled = true);
     });
 
