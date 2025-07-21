@@ -30,12 +30,12 @@ class GiftRoundsController {
     }
 
     async updateGiftRoundStage(req, res) {
-        const { id } = req.params;
+        const { giftRoundId } = req.params;
         const { stage } = req.body;
         const { data, error } = await this.supabase
             .from('gift_round')
             .update({ stage })
-            .eq('id', id)
+            .eq('id', giftRoundId)
             .select();
 
         if (error) {
