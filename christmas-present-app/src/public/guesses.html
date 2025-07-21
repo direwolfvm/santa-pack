@@ -18,6 +18,7 @@
         <th>Description</th>
         <th>Actual Giver</th>
         <th>Guess Giver</th>
+        <th>Result</th>
         <th>Action</th>
       </tr>
     </thead>
@@ -46,6 +47,7 @@
       const filtered = presents.filter(p => String(p.giver) !== String(personId));
       filtered.forEach(p => {
         const row = document.createElement('tr');
+        row.dataset.giver = p.giver;
 
         const cloakedCell = document.createElement('td');
         cloakedCell.textContent = p.cloaked_name || '';
@@ -79,19 +81,36 @@
           opt.textContent = o.name;
           select.appendChild(opt);
         });
+        const savedGuess = localStorage.getItem(`guess_${p.id}`);
+        if (savedGuess) {
+          select.value = savedGuess;
+        }
         guessCell.appendChild(select);
         row.appendChild(guessCell);
 
+        const resultCell = document.createElement('td');
+        resultCell.classList.add('result');
+        row.appendChild(resultCell);
+
         const actionCell = document.createElement('td');
-        const btn = document.createElement('button');
-        btn.textContent = 'Reveal';
-        btn.addEventListener('click', () => {
+        const saveBtn = document.createElement('button');
+        saveBtn.textContent = 'Save';
+        saveBtn.addEventListener('click', () => {
+          localStorage.setItem(`guess_${p.id}`, select.value);
+        });
+        actionCell.appendChild(saveBtn);
+
+        const revealBtn = document.createElement('button');
+        revealBtn.textContent = 'Reveal';
+        revealBtn.classList.add('reveal-btn');
+        revealBtn.addEventListener('click', () => {
           nameCell.classList.remove('hidden');
           descCell.classList.remove('hidden');
           giverCell.classList.remove('hidden');
-          btn.disabled = true;
+          resultCell.textContent = select.value && String(select.value) === String(p.giver) ? 'Correct' : 'Incorrect';
+          revealBtn.disabled = true;
         });
-        actionCell.appendChild(btn);
+        actionCell.appendChild(revealBtn);
         row.appendChild(actionCell);
 
         tableBody.appendChild(row);
@@ -99,8 +118,16 @@
     }
 
     document.getElementById('revealAll').addEventListener('click', () => {
-      document.querySelectorAll('#presentsBody .name, #presentsBody .desc, #presentsBody .giver').forEach(el => el.classList.remove('hidden'));
-      document.querySelectorAll('#presentsBody button').forEach(btn => btn.disabled = true);
+      document.querySelectorAll('#presentsBody tr').forEach(row => {
+        row.querySelectorAll('.name, .desc, .giver').forEach(el => el.classList.remove('hidden'));
+        const select = row.querySelector('select');
+        const giver = row.dataset.giver;
+        const result = row.querySelector('.result');
+        if (select && result) {
+          result.textContent = select.value && String(select.value) === String(giver) ? 'Correct' : 'Incorrect';
+        }
+      });
+      document.querySelectorAll('#presentsBody .reveal-btn').forEach(btn => btn.disabled = true);
     });
 
     loadPeople();
