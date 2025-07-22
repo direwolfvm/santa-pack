@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Person Overview</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="nav.js"></script>
+</head>
+<body>
+  <div id="nav"></div>
+  <h1 id="title">Person</h1>
+  <div id="roundsContainer">Loading...</div>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const familyId = params.get('familyId');
+    const familyName = params.get('familyName');
+    const personId = params.get('personId');
+    const personName = params.get('personName');
+    document.getElementById('title').textContent = `${personName} in ${familyName}`;
+
+    async function loadRounds() {
+      const res = await fetch(`/api/families/${familyId}/gift-rounds`);
+      const rounds = await res.json();
+      const container = document.getElementById('roundsContainer');
+      container.innerHTML = '';
+      if (rounds.length === 0) {
+        container.textContent = 'No gift rounds found.';
+        return;
+      }
+      const table = document.createElement('table');
+      const headRow = document.createElement('tr');
+      ['Round', 'Stage', 'Go to Round', 'Presents', 'Summary'].forEach(t => {
+        const th = document.createElement('th');
+        th.textContent = t;
+        headRow.appendChild(th);
+      });
+      const thead = document.createElement('thead');
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+      const tbody = document.createElement('tbody');
+      rounds.forEach(r => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${r.name}</td><td>${r.stage}</td>`;
+        const roundTd = document.createElement('td');
+        const roundBtn = document.createElement('button');
+        roundBtn.textContent = 'Gift Round';
+        roundBtn.addEventListener('click', () => {
+          window.location.href = `people.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${r.id}&stage=${encodeURIComponent(r.stage)}`;
+        });
+        roundTd.appendChild(roundBtn);
+        row.appendChild(roundTd);
+        const presTd = document.createElement('td');
+        const presBtn = document.createElement('button');
+        presBtn.textContent = r.stage === 'giving' ? 'Give Presents' : 'Guess Presents';
+        presBtn.addEventListener('click', () => {
+          const page = r.stage === 'giving' ? 'presents.html' : 'guesses.html';
+          window.location.href = `${page}?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${r.id}&personId=${personId}&personName=${encodeURIComponent(personName)}`;
+        });
+        presTd.appendChild(presBtn);
+        row.appendChild(presTd);
+        const summTd = document.createElement('td');
+        const sumBtn = document.createElement('button');
+        sumBtn.textContent = 'Summary';
+        sumBtn.addEventListener('click', () => {
+          let page = 'summary-complete.html';
+          if (r.stage === 'giving') page = 'summary-giving.html';
+          else if (r.stage === 'guessing') page = 'summary-guessing.html';
+          window.location.href = `${page}?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${r.id}&stage=${encodeURIComponent(r.stage)}`;
+        });
+        summTd.appendChild(sumBtn);
+        row.appendChild(summTd);
+        tbody.appendChild(row);
+      });
+      table.appendChild(tbody);
+      container.appendChild(table);
+    }
+
+    loadRounds();
+  </script>
+</body>
+</html>
