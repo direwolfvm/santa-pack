@@ -9,9 +9,8 @@
 <body>
   <div id="nav"></div>
   <h1 id="title">People</h1>
-  <p id="instructions">Select your name or add yourself below.</p>
+  <p id="instructions">Select your name below or add yourself.</p>
   <div id="peopleContainer">Loading...</div>
-  <button id="goToPresents" disabled>See Presents</button>
 
   <h2>Add Person</h2>
   <form id="personForm">
@@ -25,39 +24,60 @@
     const familyName = params.get('familyName');
     const giftRoundId = params.get('giftRoundId');
     const giftRoundStage = params.get('stage');
-    document.getElementById('title').textContent = `People in ${familyName}`;
+
+    async function setTitle() {
+      const res = await fetch(`/api/families/${familyId}/gift-rounds`);
+      const rounds = await res.json();
+      const round = rounds.find(r => String(r.id) === String(giftRoundId));
+      const name = round ? round.name : 'Gift Round';
+      document.title = `People - ${name}`;
+      document.getElementById('title').textContent = `People for ${name}`;
+    }
 
     async function loadPeople() {
       const res = await fetch(`/api/families/${familyId}/people`);
       const people = await res.json();
       const container = document.getElementById('peopleContainer');
-      const goButton = document.getElementById('goToPresents');
       container.innerHTML = '';
       if (people.length === 0) {
         container.textContent = 'No people yet. Add someone below.';
-        goButton.disabled = true;
         return;
       }
-      const select = document.createElement('select');
-      select.id = 'personSelect';
-      people.forEach(p => {
-        const option = document.createElement('option');
-        option.value = p.id;
-        option.textContent = p.name;
-        select.appendChild(option);
-      });
-      container.appendChild(select);
-      goButton.disabled = false;
-    }
 
-    document.getElementById('goToPresents').addEventListener('click', () => {
-      const select = document.getElementById('personSelect');
-      if (!select) return;
-      const personId = select.value;
-      const personName = select.options[select.selectedIndex].textContent;
-      const base = giftRoundStage === 'guessing' ? 'guesses.html' : 'presents.html';
-      window.location.href = `${base}?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${giftRoundId}&personId=${personId}&personName=${encodeURIComponent(personName)}`;
-    });
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const headRow = document.createElement('tr');
+      ['Name', 'Action'].forEach(t => {
+        const th = document.createElement('th');
+        th.textContent = t;
+        headRow.appendChild(th);
+      });
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      people.forEach(p => {
+        const row = document.createElement('tr');
+        const nameTd = document.createElement('td');
+        nameTd.textContent = p.name;
+        row.appendChild(nameTd);
+
+        const actionTd = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.classList.add('table-btn');
+        btn.textContent = giftRoundStage === 'guessing' ? 'Guess' : 'Give';
+        btn.addEventListener('click', () => {
+          const page = giftRoundStage === 'guessing' ? 'guesses.html' : 'presents.html';
+          window.location.href = `${page}?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${giftRoundId}&personId=${p.id}&personName=${encodeURIComponent(p.name)}&stage=${encodeURIComponent(giftRoundStage)}`;
+        });
+        actionTd.appendChild(btn);
+        row.appendChild(actionTd);
+        tbody.appendChild(row);
+      });
+
+      table.appendChild(tbody);
+      container.appendChild(table);
+    }
 
     document.getElementById('personForm').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -71,6 +91,7 @@
       loadPeople();
     });
 
+    setTitle();
     loadPeople();
   </script>
 </body>
