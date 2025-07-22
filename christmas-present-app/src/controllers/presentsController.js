@@ -36,13 +36,16 @@ class PresentsController {
 
     async updatePresent(req, res) {
         const { id } = req.params;
-        const { name, description, cloakedName } = req.body;
+        const { name, description, cloakedName, receiverGuess, revealed } = req.body;
         const updates = { name, description };
         if (cloakedName !== undefined) updates.cloaked_name = cloakedName;
+        if (receiverGuess !== undefined) updates.receiver_guess = receiverGuess;
+        if (revealed !== undefined) updates.revealed = revealed;
         const { data, error } = await this.supabase
             .from('present')
             .update(updates)
-            .eq('id', id);
+            .eq('id', id)
+            .select();
 
         if (error) {
             return res.status(400).json({ error: error.message });

@@ -48,6 +48,7 @@
       filtered.forEach(p => {
         const row = document.createElement('tr');
         row.dataset.giver = p.giver;
+        row.dataset.id = p.id;
 
         const cloakedCell = document.createElement('td');
         cloakedCell.textContent = p.cloaked_name || '';
@@ -81,9 +82,8 @@
           opt.textContent = o.name;
           select.appendChild(opt);
         });
-        const savedGuess = localStorage.getItem(`guess_${p.id}`);
-        if (savedGuess) {
-          select.value = savedGuess;
+        if (p.receiver_guess) {
+          select.value = p.receiver_guess;
         }
         guessCell.appendChild(select);
         row.appendChild(guessCell);
@@ -95,30 +95,48 @@
         const actionCell = document.createElement('td');
         const saveBtn = document.createElement('button');
         saveBtn.textContent = 'Save';
-        saveBtn.addEventListener('click', () => {
-          localStorage.setItem(`guess_${p.id}`, select.value);
+        saveBtn.addEventListener('click', async () => {
+          await fetch(`/api/presents/${p.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ receiverGuess: select.value || null })
+          });
         });
         actionCell.appendChild(saveBtn);
 
         const revealBtn = document.createElement('button');
         revealBtn.textContent = 'Reveal';
         revealBtn.classList.add('reveal-btn');
-        revealBtn.addEventListener('click', () => {
+        revealBtn.addEventListener('click', async () => {
           nameCell.classList.remove('hidden');
           descCell.classList.remove('hidden');
           giverCell.classList.remove('hidden');
           resultCell.textContent = select.value && String(select.value) === String(p.giver) ? 'Correct' : 'Incorrect';
           revealBtn.disabled = true;
+          await fetch(`/api/presents/${p.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ revealed: true })
+          });
         });
         actionCell.appendChild(revealBtn);
         row.appendChild(actionCell);
+
+        if (p.revealed) {
+          nameCell.classList.remove('hidden');
+          descCell.classList.remove('hidden');
+          giverCell.classList.remove('hidden');
+          resultCell.textContent = select.value && String(select.value) === String(p.giver) ? 'Correct' : 'Incorrect';
+          revealBtn.disabled = true;
+        }
 
         tableBody.appendChild(row);
       });
     }
 
-    document.getElementById('revealAll').addEventListener('click', () => {
-      document.querySelectorAll('#presentsBody tr').forEach(row => {
+    document.getElementById('revealAll').addEventListener('click', async () => {
+      const rows = document.querySelectorAll('#presentsBody tr');
+      for (const row of rows) {
         row.querySelectorAll('.name, .desc, .giver').forEach(el => el.classList.remove('hidden'));
         const select = row.querySelector('select');
         const giver = row.dataset.giver;
@@ -126,8 +144,15 @@
         if (select && result) {
           result.textContent = select.value && String(select.value) === String(giver) ? 'Correct' : 'Incorrect';
         }
-      });
-      document.querySelectorAll('#presentsBody .reveal-btn').forEach(btn => btn.disabled = true);
+        const revealBtn = row.querySelector('.reveal-btn');
+        if (revealBtn) revealBtn.disabled = true;
+        const id = row.dataset.id;
+        await fetch(`/api/presents/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ revealed: true })
+        });
+      }
     });
 
     loadPeople();
