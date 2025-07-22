@@ -12,7 +12,6 @@
   <p>Create your first family to begin planning gift exchanges.</p>
   <h2>Families</h2>
   <div id="familiesContainer">Loading...</div>
-  <button id="goToGiftRounds" disabled>Go to Gift Rounds</button>
 
   <h2>Gift Rounds</h2>
   <div id="giftRoundsContainer">Loading...</div>
@@ -36,26 +35,47 @@
     async function loadFamilies() {
       const families = await fetchFamilies();
       const container = document.getElementById('familiesContainer');
-      const goButton = document.getElementById('goToGiftRounds');
 
       container.innerHTML = '';
 
       if (families.length === 0) {
         container.textContent = 'No families yet.';
-        goButton.disabled = true;
         return;
       }
 
-      const select = document.createElement('select');
-      select.id = 'familySelect';
-      families.forEach(f => {
-        const option = document.createElement('option');
-        option.value = f.id;
-        option.textContent = f.name;
-        select.appendChild(option);
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const headRow = document.createElement('tr');
+      ['Family', 'Gift Rounds'].forEach(text => {
+        const th = document.createElement('th');
+        th.textContent = text;
+        headRow.appendChild(th);
       });
-      container.appendChild(select);
-      goButton.disabled = false;
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+      const tbody = document.createElement('tbody');
+
+      families.forEach(f => {
+        const row = document.createElement('tr');
+        const nameTd = document.createElement('td');
+        nameTd.textContent = f.name;
+        row.appendChild(nameTd);
+
+        const actionTd = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.classList.add('table-btn');
+        btn.textContent = 'View Rounds';
+        btn.addEventListener('click', () => {
+          window.location.href = `giftRounds.html?familyId=${f.id}&familyName=${encodeURIComponent(f.name)}`;
+        });
+        actionTd.appendChild(btn);
+        row.appendChild(actionTd);
+
+        tbody.appendChild(row);
+      });
+
+      table.appendChild(tbody);
+      container.appendChild(table);
     }
 
     async function loadGiftRounds() {
@@ -89,12 +109,15 @@
           famTd.textContent = f.name;
           row.appendChild(famTd);
 
-          const roundTd = document.createElement('td');
-          const link = document.createElement('a');
-          link.textContent = r.name;
-          link.href = `people.html?familyId=${f.id}&familyName=${encodeURIComponent(f.name)}&giftRoundId=${r.id}&stage=${encodeURIComponent(r.stage)}`;
-          roundTd.appendChild(link);
-          row.appendChild(roundTd);
+        const roundTd = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.classList.add('table-btn');
+        btn.textContent = r.name;
+        btn.addEventListener('click', () => {
+          window.location.href = `people.html?familyId=${f.id}&familyName=${encodeURIComponent(f.name)}&giftRoundId=${r.id}&stage=${encodeURIComponent(r.stage)}`;
+        });
+        roundTd.appendChild(btn);
+        row.appendChild(roundTd);
 
           const stageTd = document.createElement('td');
           stageTd.textContent = r.stage;
@@ -140,10 +163,13 @@
           row.appendChild(famTd);
 
           const personTd = document.createElement('td');
-          const link = document.createElement('a');
-          link.textContent = p.name;
-          link.href = `person.html?familyId=${f.id}&familyName=${encodeURIComponent(f.name)}&personId=${p.id}&personName=${encodeURIComponent(p.name)}`;
-          personTd.appendChild(link);
+          const btn = document.createElement('button');
+          btn.classList.add('table-btn');
+          btn.textContent = p.name;
+          btn.addEventListener('click', () => {
+            window.location.href = `person.html?familyId=${f.id}&familyName=${encodeURIComponent(f.name)}&personId=${p.id}&personName=${encodeURIComponent(p.name)}`;
+          });
+          personTd.appendChild(btn);
           row.appendChild(personTd);
 
           tbody.appendChild(row);
@@ -154,13 +180,6 @@
       container.appendChild(table);
     }
 
-    document.getElementById('goToGiftRounds').addEventListener('click', () => {
-      const select = document.getElementById('familySelect');
-      if (!select) return;
-      const familyId = select.value;
-      const familyName = select.options[select.selectedIndex].textContent;
-      window.location.href = `giftRounds.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}`;
-    });
 
     document.getElementById('familyForm').addEventListener('submit', async (e) => {
       e.preventDefault();
