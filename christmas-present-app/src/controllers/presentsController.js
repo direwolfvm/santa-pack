@@ -50,6 +50,31 @@ class PresentsController {
         if (error) {
             return res.status(400).json({ error: error.message });
         }
+        // If a guess was provided, check if the gift round is complete
+        if (receiverGuess !== undefined && data && data[0] && data[0].gift_round) {
+            const giftRoundId = data[0].gift_round;
+            const { data: presents, error: presErr } = await this.supabase
+                .from('present')
+                .select('receiver_guess')
+                .eq('gift_round', giftRoundId);
+            if (!presErr) {
+                const allGuessed = presents.every(p => p.receiver_guess !== null);
+                if (allGuessed) {
+                    const { data: roundData, error: roundErr } = await this.supabase
+                        .from('gift_round')
+                        .select('stage')
+                        .eq('id', giftRoundId)
+                        .single();
+                    if (!roundErr && roundData.stage === 'guessing') {
+                        await this.supabase
+                            .from('gift_round')
+                            .update({ stage: 'complete' })
+                            .eq('id', giftRoundId);
+                    }
+                }
+            }
+        }
+
         res.status(200).json(data);
     }
 

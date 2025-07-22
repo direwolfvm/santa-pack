@@ -35,7 +35,7 @@
       const table = document.createElement('table');
       const thead = document.createElement('thead');
       const headRow = document.createElement('tr');
-      ['Name', 'Stage', 'Actions'].forEach(text => {
+      ['Name', 'Stage', 'Actions', 'Summary'].forEach(text => {
         const th = document.createElement('th');
         th.textContent = text;
         headRow.appendChild(th);
@@ -63,20 +63,35 @@
         });
         actionsTd.appendChild(goBtn);
 
-        const switchBtn = document.createElement('button');
-        switchBtn.textContent = r.stage === 'giving' ? 'Switch to Guessing' : 'Switch to Giving';
-        switchBtn.addEventListener('click', async () => {
-          const newStage = r.stage === 'giving' ? 'guessing' : 'giving';
-          await fetch(`/api/families/gift-rounds/${r.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ stage: newStage })
+        if (r.stage !== 'complete') {
+          const switchBtn = document.createElement('button');
+          switchBtn.textContent = r.stage === 'giving' ? 'Switch to Guessing' : 'Switch to Giving';
+          switchBtn.addEventListener('click', async () => {
+            const newStage = r.stage === 'giving' ? 'guessing' : 'giving';
+            await fetch(`/api/families/gift-rounds/${r.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ stage: newStage })
+            });
+            loadGiftRounds();
           });
-          loadGiftRounds();
-        });
-        actionsTd.appendChild(switchBtn);
+          actionsTd.appendChild(switchBtn);
+        }
 
         row.appendChild(actionsTd);
+
+        const summaryTd = document.createElement('td');
+        const summaryBtn = document.createElement('button');
+        summaryBtn.textContent = 'View Summary';
+        summaryBtn.addEventListener('click', () => {
+          let page;
+          if (r.stage === 'giving') page = 'summary-giving.html';
+          else if (r.stage === 'guessing') page = 'summary-guessing.html';
+          else page = 'summary-complete.html';
+          window.location.href = `${page}?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${r.id}&stage=${encodeURIComponent(r.stage)}`;
+        });
+        summaryTd.appendChild(summaryBtn);
+        row.appendChild(summaryTd);
         tbody.appendChild(row);
       });
 
