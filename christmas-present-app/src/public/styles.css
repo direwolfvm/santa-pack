@@ -107,3 +107,7 @@ th {
 .hidden {
   visibility: hidden;
 }
+
+.table-btn {
+  width: 100%;
+}
