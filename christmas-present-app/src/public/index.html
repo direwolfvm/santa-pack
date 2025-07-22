@@ -14,6 +14,12 @@
   <div id="familiesContainer">Loading...</div>
   <button id="goToGiftRounds" disabled>Go to Gift Rounds</button>
 
+  <h2>Gift Rounds</h2>
+  <div id="giftRoundsContainer">Loading...</div>
+
+  <h2>People</h2>
+  <div id="peopleContainer">Loading...</div>
+
   <h2>Create New Family</h2>
   <form id="familyForm">
     <label for="familyName">Family Name:</label>
@@ -22,9 +28,13 @@
   </form>
 
   <script>
-    async function loadFamilies() {
+    async function fetchFamilies() {
       const res = await fetch('/api/families');
-      const families = await res.json();
+      return res.json();
+    }
+
+    async function loadFamilies() {
+      const families = await fetchFamilies();
       const container = document.getElementById('familiesContainer');
       const goButton = document.getElementById('goToGiftRounds');
 
@@ -48,6 +58,102 @@
       goButton.disabled = false;
     }
 
+    async function loadGiftRounds() {
+      const families = await fetchFamilies();
+      const container = document.getElementById('giftRoundsContainer');
+      container.innerHTML = '';
+
+      if (families.length === 0) {
+        container.textContent = 'No families yet.';
+        return;
+      }
+
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const headRow = document.createElement('tr');
+      ['Family', 'Round', 'Stage'].forEach(text => {
+        const th = document.createElement('th');
+        th.textContent = text;
+        headRow.appendChild(th);
+      });
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+      const tbody = document.createElement('tbody');
+
+      for (const f of families) {
+        const res = await fetch(`/api/families/${f.id}/gift-rounds`);
+        const rounds = await res.json();
+        rounds.forEach(r => {
+          const row = document.createElement('tr');
+          const famTd = document.createElement('td');
+          famTd.textContent = f.name;
+          row.appendChild(famTd);
+
+          const roundTd = document.createElement('td');
+          const link = document.createElement('a');
+          link.textContent = r.name;
+          link.href = `people.html?familyId=${f.id}&familyName=${encodeURIComponent(f.name)}&giftRoundId=${r.id}&stage=${encodeURIComponent(r.stage)}`;
+          roundTd.appendChild(link);
+          row.appendChild(roundTd);
+
+          const stageTd = document.createElement('td');
+          stageTd.textContent = r.stage;
+          row.appendChild(stageTd);
+
+          tbody.appendChild(row);
+        });
+      }
+
+      table.appendChild(tbody);
+      container.appendChild(table);
+    }
+
+    async function loadPeople() {
+      const families = await fetchFamilies();
+      const container = document.getElementById('peopleContainer');
+      container.innerHTML = '';
+
+      if (families.length === 0) {
+        container.textContent = 'No families yet.';
+        return;
+      }
+
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const headRow = document.createElement('tr');
+      ['Family', 'Person'].forEach(text => {
+        const th = document.createElement('th');
+        th.textContent = text;
+        headRow.appendChild(th);
+      });
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+      const tbody = document.createElement('tbody');
+
+      for (const f of families) {
+        const res = await fetch(`/api/families/${f.id}/people`);
+        const people = await res.json();
+        people.forEach(p => {
+          const row = document.createElement('tr');
+          const famTd = document.createElement('td');
+          famTd.textContent = f.name;
+          row.appendChild(famTd);
+
+          const personTd = document.createElement('td');
+          const link = document.createElement('a');
+          link.textContent = p.name;
+          link.href = `person.html?familyId=${f.id}&familyName=${encodeURIComponent(f.name)}&personId=${p.id}&personName=${encodeURIComponent(p.name)}`;
+          personTd.appendChild(link);
+          row.appendChild(personTd);
+
+          tbody.appendChild(row);
+        });
+      }
+
+      table.appendChild(tbody);
+      container.appendChild(table);
+    }
+
     document.getElementById('goToGiftRounds').addEventListener('click', () => {
       const select = document.getElementById('familySelect');
       if (!select) return;
@@ -66,9 +172,13 @@
       });
       document.getElementById('familyName').value = '';
       loadFamilies();
+      loadGiftRounds();
+      loadPeople();
     });
 
     loadFamilies();
+    loadGiftRounds();
+    loadPeople();
   </script>
 </body>
 </html>
