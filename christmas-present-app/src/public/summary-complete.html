@@ -6,7 +6,88 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>Gift Round Summary (Complete)</h1>
-  <p>This summary page is under construction.</p>
+  <h1 id="title">Gift Round Summary (Complete)</h1>
+  <table border="1" id="summaryTable">
+    <thead>
+      <tr>
+        <th id="rankHeader">Rank</th>
+        <th>Name</th>
+        <th id="correctHeader" class="sortable">Correct Guesses</th>
+        <th id="guessedHeader" class="sortable">Times Guessed</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const familyId = params.get('familyId');
+    const familyName = params.get('familyName');
+    const giftRoundId = params.get('giftRoundId');
+    document.getElementById('title').textContent = `Summary for ${familyName}`;
+
+    async function loadData() {
+      const [peopleRes, presentsRes] = await Promise.all([
+        fetch(`/api/families/${familyId}/people`),
+        fetch(`/api/presents?giftRoundId=${giftRoundId}`)
+      ]);
+      const people = await peopleRes.json();
+      const presents = await presentsRes.json();
+
+      const stats = people.map(p => {
+        const received = presents.filter(pr => pr.receiver === p.id);
+        const given = presents.filter(pr => pr.giver === p.id);
+        const correctGuesses = received.filter(pr => pr.receiver_guess === pr.giver).length;
+        const guessedCorrectly = given.filter(pr => pr.receiver_guess === p.id).length;
+        return {
+          id: p.id,
+          name: p.name,
+          correctGuesses,
+          guessedCorrectly
+        };
+      });
+
+      let sortKey = 'correctGuesses';
+      let ascending = false;
+
+      function render() {
+        stats.sort((a, b) => {
+          const diff = a[sortKey] - b[sortKey];
+          return ascending ? diff : -diff;
+        });
+
+        const tbody = document.querySelector('#summaryTable tbody');
+        tbody.innerHTML = '';
+        stats.forEach((s, idx) => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${idx + 1}</td>
+            <td>${s.name}</td>
+            <td>${s.correctGuesses}</td>
+            <td>${s.guessedCorrectly}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      }
+
+      function setupSorting() {
+        document.getElementById('correctHeader').addEventListener('click', () => {
+          if (sortKey === 'correctGuesses') ascending = !ascending; else ascending = false;
+          sortKey = 'correctGuesses';
+          render();
+        });
+        document.getElementById('guessedHeader').addEventListener('click', () => {
+          if (sortKey === 'guessedCorrectly') ascending = !ascending; else ascending = false;
+          sortKey = 'guessedCorrectly';
+          render();
+        });
+      }
+
+      setupSorting();
+      render();
+    }
+
+    loadData();
+  </script>
 </body>
 </html>
