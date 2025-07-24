@@ -66,20 +66,27 @@
         });
         actionsTd.appendChild(goBtn);
 
-        if (r.stage !== 'complete') {
-          const switchBtn = document.createElement('button');
-          switchBtn.textContent = r.stage === 'giving' ? 'Switch to Guessing' : 'Switch to Giving';
-          switchBtn.addEventListener('click', async () => {
-            const newStage = r.stage === 'giving' ? 'guessing' : 'giving';
-            await fetch(`/api/families/gift-rounds/${r.id}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ stage: newStage })
-            });
-            loadGiftRounds();
-          });
-          actionsTd.appendChild(switchBtn);
+        const switchBtn = document.createElement('button');
+        let newStage;
+        if (r.stage === 'giving') {
+          switchBtn.textContent = 'Switch to Guessing';
+          newStage = 'guessing';
+        } else if (r.stage === 'guessing') {
+          switchBtn.textContent = 'Switch to Giving';
+          newStage = 'giving';
+        } else {
+          switchBtn.textContent = 'Reopen Guessing';
+          newStage = 'guessing';
         }
+        switchBtn.addEventListener('click', async () => {
+          await fetch(`/api/families/gift-rounds/${r.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stage: newStage })
+          });
+          loadGiftRounds();
+        });
+        actionsTd.appendChild(switchBtn);
 
         row.appendChild(actionsTd);
 
