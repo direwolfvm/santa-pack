@@ -21,7 +21,8 @@
     <tbody id="summaryBody"></tbody>
   </table>
 
-  <p id="allDoneMsg" class="hidden">All guesses recorded! Gift round marked complete.</p>
+  <p id="allDoneMsg" class="hidden">All guesses recorded! Ready to mark round complete.</p>
+  <button id="completeBtn" class="hidden">Mark Round Complete</button>
 
   <script>
     const params = new URLSearchParams(window.location.search);
@@ -51,17 +52,24 @@
       }
 
       const doneMsg = document.getElementById('allDoneMsg');
+      const completeBtn = document.getElementById('completeBtn');
       if (allGuessed) {
         doneMsg.classList.remove('hidden');
-        await fetch(`/api/families/gift-rounds/${giftRoundId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ stage: 'complete' })
-        });
+        completeBtn.classList.remove('hidden');
       } else {
         doneMsg.classList.add('hidden');
+        completeBtn.classList.add('hidden');
       }
     }
+
+    document.getElementById('completeBtn').addEventListener('click', async () => {
+      await fetch(`/api/families/gift-rounds/${giftRoundId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stage: 'complete' })
+      });
+      loadSummary();
+    });
 
     loadSummary();
   </script>

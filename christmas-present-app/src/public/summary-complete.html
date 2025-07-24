@@ -10,6 +10,7 @@
 <body>
   <div id="nav"></div>
   <h1 id="title">Gift Round Summary (Complete)</h1>
+  <button id="reopenBtn">Reopen Guessing</button>
   <table border="1" id="summaryTable">
     <thead>
       <tr>
@@ -28,6 +29,14 @@
     const familyName = params.get('familyName');
     const giftRoundId = params.get('giftRoundId');
     document.getElementById('title').textContent = `Summary for ${familyName}`;
+    document.getElementById('reopenBtn').addEventListener('click', async () => {
+      await fetch(`/api/families/gift-rounds/${giftRoundId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stage: 'guessing' })
+      });
+      window.location.href = `summary-guessing.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${giftRoundId}&stage=guessing`;
+    });
 
     async function loadData() {
       const [peopleRes, presentsRes] = await Promise.all([
