@@ -43,6 +43,19 @@ class GiftRoundsController {
         }
         res.status(200).json(data);
     }
+
+    async deleteGiftRound(req, res) {
+        const { giftRoundId } = req.params;
+        const { error } = await this.supabase
+            .from('gift_round')
+            .delete()
+            .eq('id', giftRoundId);
+
+        if (error) {
+            return res.status(400).json({ error: error.message });
+        }
+        res.status(204).send();
+    }
 }
 
 module.exports = GiftRoundsController;

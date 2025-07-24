@@ -27,6 +27,10 @@
     <button type="submit">Create Family</button>
   </form>
 
+  <div style="margin-top: 2rem;">
+    <button id="adminBtn">Management Console</button>
+  </div>
+
   <script>
     async function fetchFamilies() {
       const res = await fetch('/api/families');
@@ -194,6 +198,10 @@
       loadFamilies();
       loadGiftRounds();
       loadPeople();
+    });
+
+    document.getElementById('adminBtn').addEventListener('click', () => {
+      window.location.href = 'admin.html';
     });
 
     loadFamilies();

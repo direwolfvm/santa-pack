@@ -30,4 +30,9 @@ router.get('/:familyId/people', peopleController.getPeople.bind(peopleController
 // Create a person for a family
 router.post('/:familyId/people', peopleController.createPerson.bind(peopleController));
 
+// Delete routes for admin console
+router.delete('/:familyId', familiesController.deleteFamily.bind(familiesController));
+router.delete('/gift-rounds/:giftRoundId', giftRoundsController.deleteGiftRound.bind(giftRoundsController));
+router.delete('/people/:personId', peopleController.deletePerson.bind(peopleController));
+
 module.exports = router;
