@@ -12,4 +12,4 @@ santa pack application
    ```sh
    docker compose up --build
    ```
-   The application will be available at http://localhost:3000.
+   The application will be available at http://localhost:8080.
