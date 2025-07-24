@@ -77,7 +77,7 @@ async function loadData() {
     const delTd=document.createElement('td');
     const btn=document.createElement('button');
     btn.textContent='Delete';
-    btn.addEventListener('click',()=>{fetch(`/api/gift-rounds/${r.id}`,{method:'DELETE'}).then(loadData);});
+    btn.addEventListener('click',()=>{fetch(`/api/families/gift-rounds/${r.id}`,{method:'DELETE'}).then(loadData);});
     delTd.appendChild(btn);
     row.appendChild(delTd);
     rBody.appendChild(row);
@@ -104,7 +104,7 @@ async function loadData() {
     const delTd=document.createElement('td');
     const btn=document.createElement('button');
     btn.textContent='Delete';
-    btn.addEventListener('click',()=>{fetch(`/api/people/${p.id}`,{method:'DELETE'}).then(loadData);});
+    btn.addEventListener('click',()=>{fetch(`/api/families/people/${p.id}`,{method:'DELETE'}).then(loadData);});
     delTd.appendChild(btn);
     row.appendChild(delTd);
     pBody.appendChild(row);
