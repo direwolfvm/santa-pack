@@ -111,6 +111,20 @@
         });
         actionsTd.appendChild(switchBtn);
 
+        if (r.stage === 'guessing' && ready) {
+          const completeBtn = document.createElement('button');
+          completeBtn.textContent = 'Complete';
+          completeBtn.addEventListener('click', async () => {
+            await fetch(`/api/families/gift-rounds/${r.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ stage: 'complete' })
+            });
+            loadGiftRounds();
+          });
+          actionsTd.appendChild(completeBtn);
+        }
+
         row.appendChild(actionsTd);
 
         const summaryTd = document.createElement('td');
