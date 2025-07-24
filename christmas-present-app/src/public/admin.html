@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Management Console</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="nav.js"></script>
+  <script src="snow.js"></script>
+</head>
+<body>
+  <div id="nav"></div>
+  <h1>Management Console</h1>
+
+  <h2>Families</h2>
+  <div id="familiesTable">Loading...</div>
+
+  <h2>Gift Rounds</h2>
+  <div id="roundsTable">Loading...</div>
+
+  <h2>People</h2>
+  <div id="peopleTable">Loading...</div>
+
+  <h2>Presents</h2>
+  <div id="presentsTable">Loading...</div>
+
+<script>
+async function loadData() {
+  const families = await fetch('/api/families').then(r => r.json());
+  const famMap = {};
+  families.forEach(f => { famMap[f.id] = f.name; });
+
+  const famCont = document.getElementById('familiesTable');
+  famCont.innerHTML = '';
+  const famTable = document.createElement('table');
+  const famHead = document.createElement('tr');
+  ['ID','Name','Delete'].forEach(t => { const th=document.createElement('th'); th.textContent=t; famHead.appendChild(th); });
+  const famThead = document.createElement('thead');
+  famThead.appendChild(famHead);
+  famTable.appendChild(famThead);
+  const famBody = document.createElement('tbody');
+  families.forEach(f => {
+    const row=document.createElement('tr');
+    row.innerHTML = `<td>${f.id}</td><td>${f.name}</td>`;
+    const delTd=document.createElement('td');
+    const btn=document.createElement('button');
+    btn.textContent='Delete';
+    btn.addEventListener('click',()=>{fetch(`/api/families/${f.id}`,{method:'DELETE'}).then(loadData);});
+    delTd.appendChild(btn);
+    row.appendChild(delTd);
+    famBody.appendChild(row);
+  });
+  famTable.appendChild(famBody);
+  famCont.appendChild(famTable);
+
+  // Gift rounds
+  const rounds = [];
+  for (const f of families) {
+    const rs = await fetch(`/api/families/${f.id}/gift-rounds`).then(r => r.json());
+    rs.forEach(rnd => rounds.push({...rnd, familyName:f.name}));
+  }
+  const roundCont=document.getElementById('roundsTable');
+  roundCont.innerHTML='';
+  const roundTable=document.createElement('table');
+  const rHead=document.createElement('tr');
+  ['ID','Name','Family','Stage','Delete'].forEach(t=>{const th=document.createElement('th');th.textContent=t;rHead.appendChild(th);});
+  const rThead=document.createElement('thead');rThead.appendChild(rHead);roundTable.appendChild(rThead);
+  const rBody=document.createElement('tbody');
+  rounds.forEach(r=>{
+    const row=document.createElement('tr');
+    row.innerHTML=`<td>${r.id}</td><td>${r.name}</td><td>${r.familyName}</td><td>${r.stage}</td>`;
+    const delTd=document.createElement('td');
+    const btn=document.createElement('button');
+    btn.textContent='Delete';
+    btn.addEventListener('click',()=>{fetch(`/api/gift-rounds/${r.id}`,{method:'DELETE'}).then(loadData);});
+    delTd.appendChild(btn);
+    row.appendChild(delTd);
+    rBody.appendChild(row);
+  });
+  roundTable.appendChild(rBody);
+  roundCont.appendChild(roundTable);
+
+  // People
+  const people=[];
+  for (const f of families) {
+    const ps = await fetch(`/api/families/${f.id}/people`).then(r => r.json());
+    ps.forEach(p=>people.push({...p, familyName:f.name}));
+  }
+  const peopleCont=document.getElementById('peopleTable');
+  peopleCont.innerHTML='';
+  const peopleTable=document.createElement('table');
+  const pHead=document.createElement('tr');
+  ['ID','Name','Family','Delete'].forEach(t=>{const th=document.createElement('th');th.textContent=t;pHead.appendChild(th);});
+  const pThead=document.createElement('thead');pThead.appendChild(pHead);peopleTable.appendChild(pThead);
+  const pBody=document.createElement('tbody');
+  people.forEach(p=>{
+    const row=document.createElement('tr');
+    row.innerHTML=`<td>${p.id}</td><td>${p.name}</td><td>${p.familyName}</td>`;
+    const delTd=document.createElement('td');
+    const btn=document.createElement('button');
+    btn.textContent='Delete';
+    btn.addEventListener('click',()=>{fetch(`/api/people/${p.id}`,{method:'DELETE'}).then(loadData);});
+    delTd.appendChild(btn);
+    row.appendChild(delTd);
+    pBody.appendChild(row);
+  });
+  peopleTable.appendChild(pBody);
+  peopleCont.appendChild(peopleTable);
+
+  // Presents
+  const presents = await fetch('/api/presents').then(r=>r.json());
+  const personMap = {};
+  people.forEach(p=>{personMap[p.id]=p.name;});
+  const roundMap = {};
+  rounds.forEach(r=>{roundMap[r.id]=`${r.name} (${r.familyName})`;});
+  const presCont=document.getElementById('presentsTable');
+  presCont.innerHTML='';
+  const presTable=document.createElement('table');
+  const presHead=document.createElement('tr');
+  ['ID','Name','Gift Round','Giver','Receiver','Delete'].forEach(t=>{const th=document.createElement('th');th.textContent=t;presHead.appendChild(th);});
+  const presThead=document.createElement('thead');presThead.appendChild(presHead);presTable.appendChild(presThead);
+  const presBody=document.createElement('tbody');
+  presents.forEach(pr=>{
+    const row=document.createElement('tr');
+    const giver=pr.giver?personMap[pr.giver]||pr.giver:'';
+    const receiver=pr.receiver?personMap[pr.receiver]||pr.receiver:'';
+    const rnd=pr.gift_round?roundMap[pr.gift_round]||pr.gift_round:'';
+    row.innerHTML=`<td>${pr.id}</td><td>${pr.name}</td><td>${rnd}</td><td>${giver}</td><td>${receiver}</td>`;
+    const delTd=document.createElement('td');
+    const btn=document.createElement('button');
+    btn.textContent='Delete';
+    btn.addEventListener('click',()=>{fetch(`/api/presents/${pr.id}`,{method:'DELETE'}).then(loadData);});
+    delTd.appendChild(btn);
+    row.appendChild(delTd);
+    presBody.appendChild(row);
+  });
+  presTable.appendChild(presBody);
+  presCont.appendChild(presTable);
+}
+
+document.addEventListener('DOMContentLoaded', loadData);
+</script>
+</body>
+</html>

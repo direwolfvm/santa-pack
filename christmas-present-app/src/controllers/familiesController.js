@@ -25,6 +25,19 @@ class FamiliesController {
         }
         res.status(200).json(data);
     }
+
+    async deleteFamily(req, res) {
+        const { familyId } = req.params;
+        const { error } = await this.supabase
+            .from('family')
+            .delete()
+            .eq('id', familyId);
+
+        if (error) {
+            return res.status(400).json({ error: error.message });
+        }
+        res.status(204).send();
+    }
 }
 
 module.exports = FamiliesController;

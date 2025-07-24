@@ -28,6 +28,19 @@ class PeopleController {
         }
         res.status(200).json(data);
     }
+
+    async deletePerson(req, res) {
+        const { personId } = req.params;
+        const { error } = await this.supabase
+            .from('person')
+            .delete()
+            .eq('id', personId);
+
+        if (error) {
+            return res.status(400).json({ error: error.message });
+        }
+        res.status(204).send();
+    }
 }
 
 module.exports = PeopleController;
