@@ -6,5 +6,5 @@ WORKDIR /app/christmas-present-app
 RUN npm install --production
 # Copy source
 COPY christmas-present-app/ ./
-EXPOSE 3000
+EXPOSE 8080
 CMD ["npm", "start"]

@@ -35,7 +35,7 @@ The Christmas Present App is a multi-user application designed to enhance the ex
    ```
    SUPABASE_URL=https://nlcisvrrkypadyjzsfnj.supabase.co
    SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sY2lzdnJya3lwYWR5anpzZm5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNDUzMTAsImV4cCI6MjA2NzgyMTMxMH0.QURkxMU1XcS7TfO1MFcs5wC3-A4Beon1Fc8A97QgJU4
-   PORT=3000
+   PORT=8080
    ```
 
 ### Running the Application
@@ -43,7 +43,7 @@ To start the application, run:
 ```
 npm start
 ```
-The server will start on `http://localhost:3000`.
+The server will start on `http://localhost:8080`.
 
 If your environment requires an outbound HTTP(S) proxy, set `HTTP_PROXY` or
 `HTTPS_PROXY` (or `GLOBAL_AGENT_HTTP_PROXY`) before starting the server. The
