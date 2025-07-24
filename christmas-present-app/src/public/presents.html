@@ -32,7 +32,7 @@
     const giverId = params.get('personId');
     const giverName = params.get('personName');
 
-    document.getElementById('title').textContent = `Presents for ${giverName}`;
+    document.getElementById('title').textContent = `Presents from ${giverName}`;
 
       async function loadPeople() {
         const res = await fetch(`/api/families/${familyId}/people`);
