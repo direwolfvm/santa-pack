@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Profile</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabaseClient.js"></script>
+  <script src="nav.js"></script>
+  <script src="snow.js"></script>
+</head>
+<body>
+  <div id="nav"></div>
+  <h1>User Profile</h1>
+  <p id="email"></p>
+  <p id="role"></p>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const { data } = await supabaseClient.auth.getSession();
+      if (!data.session) {
+        window.location.href = 'login.html';
+        return;
+      }
+      const user = data.session.user;
+      document.getElementById('email').textContent = `Email: ${user.email}`;
+      const { data: profile } = await supabaseClient.from('profiles').select('role').eq('id', user.id).single();
+      if (profile) {
+        document.getElementById('role').textContent = `Role: ${profile.role}`;
+      }
+    });
+  </script>
+</body>
+</html>
