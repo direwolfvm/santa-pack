@@ -30,7 +30,7 @@
   </form>
 
   <div style="margin-top: 2rem;">
-    <button id="adminBtn">Management Console</button>
+    <button id="adminBtn" style="display:none;">Management Console</button>
   </div>
 
   <script>
@@ -188,27 +188,43 @@
     }
 
 
-    document.getElementById('familyForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const name = document.getElementById('familyName').value;
-      await fetch('/api/families', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name })
+    (async () => {
+      document.getElementById('familyForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('familyName').value;
+        await fetch('/api/families', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name })
+        });
+        document.getElementById('familyName').value = '';
+        loadFamilies();
+        loadGiftRounds();
+        loadPeople();
       });
-      document.getElementById('familyName').value = '';
+
+      const adminBtn = document.getElementById('adminBtn');
+      adminBtn.addEventListener('click', () => {
+        window.location.href = 'admin.html';
+      });
+
+      // Show the management console button only for admin users
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      if (sessionData.session) {
+        const { data: profile } = await supabaseClient
+          .from('profiles')
+          .select('role')
+          .eq('id', sessionData.session.user.id)
+          .maybeSingle();
+        if (profile && profile.role === 'admin') {
+          adminBtn.style.display = 'block';
+        }
+      }
+
       loadFamilies();
       loadGiftRounds();
       loadPeople();
-    });
-
-    document.getElementById('adminBtn').addEventListener('click', () => {
-      window.location.href = 'admin.html';
-    });
-
-    loadFamilies();
-    loadGiftRounds();
-    loadPeople();
+    })();
   </script>
 </body>
 </html>
