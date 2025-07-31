@@ -5,12 +5,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
   const user = data.session.user;
-  const { data: profile } = await supabaseClient
-    .from('profiles')
-    .select('person_id')
-    .eq('id', user.id)
+  const { data: existingPerson } = await supabaseClient
+    .from('person')
+    .select('id')
+    .eq('user_profile', user.id)
     .maybeSingle();
-  if (profile && profile.person_id) {
+  if (existingPerson) {
+    await supabaseClient
+      .from('profiles')
+      .update({ person_id: existingPerson.id })
+      .eq('id', user.id);
     window.location.href = 'index.html';
     return;
   }
@@ -31,7 +35,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const res = await fetch(`/api/families/${familyId}/people`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name })
+      body: JSON.stringify({ name, user_profile: user.id })
     });
     const created = (await res.json())[0];
     if (created) {

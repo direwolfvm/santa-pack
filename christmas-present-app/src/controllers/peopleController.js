@@ -5,10 +5,10 @@ class PeopleController {
 
     async createPerson(req, res) {
         const { familyId } = req.params;
-        const { name } = req.body;
+        const { name, user_profile } = req.body;
         const { data, error } = await this.supabase
             .from('person')
-            .insert([{ name, family: familyId }])
+            .insert([{ name, family: familyId, user_profile }])
             .select();
 
         if (error) {

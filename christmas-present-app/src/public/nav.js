@@ -8,14 +8,19 @@ async function initNav() {
     return;
   }
 
-  const { data: profile } = await supabaseClient
-    .from('profiles')
-    .select('person_id')
-    .eq('id', data.session.user.id)
+  const { data: person } = await supabaseClient
+    .from('person')
+    .select('id')
+    .eq('user_profile', data.session.user.id)
     .maybeSingle();
-  if (!profile || !profile.person_id) {
+  if (!person) {
     window.location.href = 'createPerson.html';
     return;
+  } else {
+    await supabaseClient
+      .from('profiles')
+      .update({ person_id: person.id })
+      .eq('id', data.session.user.id);
   }
 
   const params = new URLSearchParams(window.location.search);
