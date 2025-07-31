@@ -2,13 +2,10 @@ async function initNav() {
   const navContainer = document.getElementById('nav');
   if (!navContainer) return;
 
-  const isAdminPage = window.location.pathname.includes('admin');
-  if (!isAdminPage) {
-    const { data } = await supabaseClient.auth.getSession();
-    if (!data.session) {
-      window.location.href = 'login.html';
-      return;
-    }
+  const { data } = await supabaseClient.auth.getSession();
+  if (!data.session) {
+    window.location.href = 'login.html';
+    return;
   }
 
   const params = new URLSearchParams(window.location.search);
@@ -44,22 +41,20 @@ async function initNav() {
     navContainer.appendChild(personBtn);
   }
 
-  if (!isAdminPage) {
-    const profileBtn = document.createElement('button');
-    profileBtn.textContent = 'Profile';
-    profileBtn.addEventListener('click', () => {
-      window.location.href = 'profile.html';
-    });
-    navContainer.appendChild(profileBtn);
+  const profileBtn = document.createElement('button');
+  profileBtn.textContent = 'Profile';
+  profileBtn.addEventListener('click', () => {
+    window.location.href = 'profile.html';
+  });
+  navContainer.appendChild(profileBtn);
 
-    const signOutBtn = document.createElement('button');
-    signOutBtn.textContent = 'Sign Out';
-    signOutBtn.addEventListener('click', async () => {
-      await supabaseClient.auth.signOut();
-      window.location.href = 'login.html';
-    });
-    navContainer.appendChild(signOutBtn);
-  }
+  const signOutBtn = document.createElement('button');
+  signOutBtn.textContent = 'Sign Out';
+  signOutBtn.addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = 'login.html';
+  });
+  navContainer.appendChild(signOutBtn);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
