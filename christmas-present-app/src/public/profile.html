@@ -18,7 +18,7 @@
   <button id="editEmailBtn">Edit Email</button>
   <p id="role"></p>
   <p id="rolePending" style="display:none;"></p>
-  <button id="requestRoleBtn">Request Manager Role</button>
+  <button id="requestRoleBtn" style="display:none;">Request Role</button>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       const { data } = await supabaseClient.auth.getSession();
@@ -36,21 +36,35 @@
         .eq('id', user.id)
         .single();
 
-      if (profile) {
+      let currentProfile = profile;
+      if (currentProfile) {
         document.getElementById('role').textContent = `Role: ${profile.role}`;
         if (profile.role_pending) {
           const rpEl = document.getElementById('rolePending');
           rpEl.textContent = `Pending Role: ${profile.role_pending}`;
           rpEl.style.display = 'block';
         }
-        if (profile.person_id) {
+        const requestBtn = document.getElementById('requestRoleBtn');
+        if (!currentProfile.role_pending) {
+          if (currentProfile.role === 'user') {
+            requestBtn.textContent = 'Request Manager Role';
+            requestBtn.style.display = 'block';
+          } else if (currentProfile.role === 'manager') {
+            requestBtn.textContent = 'Request Admin Role';
+            requestBtn.style.display = 'block';
+          }
+        }
+
+        if (currentProfile.person_id) {
           const { data: person } = await supabaseClient
             .from('person')
             .select('name')
-            .eq('id', profile.person_id)
+            .eq('id', currentProfile.person_id)
             .maybeSingle();
           if (person) {
             document.getElementById('name').textContent = `Name: ${person.name}`;
+          } else {
+            document.getElementById('name').textContent = 'Name: (not set)';
           }
         } else {
           const { data: person } = await supabaseClient
@@ -60,6 +74,8 @@
             .maybeSingle();
           if (person) {
             document.getElementById('name').textContent = `Name: ${person.name}`;
+          } else {
+            document.getElementById('name').textContent = 'Name: (not set)';
           }
         }
       }
@@ -67,8 +83,8 @@
       document.getElementById('editNameBtn').addEventListener('click', async () => {
         const newName = prompt('Enter new name:');
         if (!newName) return;
-        if (profile && profile.person_id) {
-          await supabaseClient.from('person').update({ name: newName }).eq('id', profile.person_id);
+        if (currentProfile && currentProfile.person_id) {
+          await supabaseClient.from('person').update({ name: newName }).eq('id', currentProfile.person_id);
         } else {
           await supabaseClient.from('person').update({ name: newName }).eq('user_profile', user.id);
         }
@@ -87,17 +103,23 @@
       });
 
       document.getElementById('requestRoleBtn').addEventListener('click', async () => {
+        let desired = 'manager';
+        if (currentProfile && currentProfile.role === 'manager') {
+          desired = 'admin';
+        }
         const { error } = await supabaseClient
           .from('profiles')
-          .update({ role_pending: 'manager' })
+          .update({ role_pending: desired })
           .eq('id', user.id);
         if (error) {
           alert(error.message);
           return;
         }
         const rpEl = document.getElementById('rolePending');
-        rpEl.textContent = 'Pending Role: manager';
+        rpEl.textContent = `Pending Role: ${desired}`;
         rpEl.style.display = 'block';
+        currentProfile.role_pending = desired;
+        document.getElementById('requestRoleBtn').style.display = 'none';
       });
     });
   </script>

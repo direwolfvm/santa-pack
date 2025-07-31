@@ -135,10 +135,15 @@ async function loadData() {
     pendTd.textContent=prof.role_pending||'';
     row.appendChild(pendTd);
     const confirmTd=document.createElement('td');
-    if(prof.role_pending==='manager'){
+    if(prof.role_pending){
       const cBtn=document.createElement('button');
       cBtn.textContent='Confirm';
-      cBtn.addEventListener('click',async()=>{await supabaseClient.from("profiles").update({role:'manager',role_pending:null}).eq('id',p.user_profile);loadData();});
+      cBtn.addEventListener('click',async()=>{
+        await supabaseClient.from("profiles")
+          .update({role:prof.role_pending,role_pending:null})
+          .eq('id',p.user_profile);
+        loadData();
+      });
       confirmTd.appendChild(cBtn);
     }
     row.appendChild(confirmTd);
