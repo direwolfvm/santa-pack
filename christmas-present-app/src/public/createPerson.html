@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Create Person</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabaseClient.js"></script>
+  <script src="createPerson.js" defer></script>
+</head>
+<body>
+  <h1>Create Your Person</h1>
+  <form id="personForm">
+    <label for="personName">Name:</label>
+    <input type="text" id="personName" required />
+    <label for="familySelect">Family:</label>
+    <select id="familySelect" required></select>
+    <button type="submit">Save</button>
+  </form>
+</body>
+</html>

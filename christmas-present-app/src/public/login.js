@@ -14,6 +14,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  async function finishLogin(user) {
+    await ensureProfile(user);
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('person_id')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (!profile || !profile.person_id) {
+      window.location.href = 'createPerson.html';
+    } else {
+      window.location.href = 'index.html';
+    }
+  }
+
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('email').value;
@@ -22,8 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (error) {
       alert(error.message);
     } else {
-      await ensureProfile(data.user);
-      window.location.href = 'index.html';
+      await finishLogin(data.user);
     }
   });
 
@@ -37,8 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     if (data.session) {
-      await ensureProfile(data.user);
-      window.location.href = 'index.html';
+      await finishLogin(data.user);
     } else {
       alert('Check your email for a confirmation link to log in.');
     }
