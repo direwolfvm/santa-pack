@@ -8,6 +8,16 @@ async function initNav() {
     return;
   }
 
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('person_id')
+    .eq('id', data.session.user.id)
+    .maybeSingle();
+  if (!profile || !profile.person_id) {
+    window.location.href = 'createPerson.html';
+    return;
+  }
+
   const params = new URLSearchParams(window.location.search);
   const familyId = params.get('familyId');
   const familyName = params.get('familyName');
