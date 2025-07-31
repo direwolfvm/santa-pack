@@ -16,13 +16,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function finishLogin(user) {
     await ensureProfile(user);
-    const { data: profile } = await supabaseClient
+    let { data: profile } = await supabaseClient
       .from('profiles')
       .select('person_id')
       .eq('id', user.id)
       .maybeSingle();
+
     if (!profile || !profile.person_id) {
-      window.location.href = 'createPerson.html';
+      const { data: person } = await supabaseClient
+        .from('person')
+        .select('id')
+        .eq('user_profile', user.id)
+        .maybeSingle();
+
+      if (person) {
+        await supabaseClient
+          .from('profiles')
+          .update({ person_id: person.id })
+          .eq('id', user.id);
+        window.location.href = 'index.html';
+      } else {
+        window.location.href = 'createPerson.html';
+      }
     } else {
       window.location.href = 'index.html';
     }
