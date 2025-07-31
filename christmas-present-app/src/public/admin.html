@@ -106,16 +106,42 @@ async function loadData() {
     const ps = await fetch(`/api/families/${f.id}/people`).then(r => r.json());
     ps.forEach(p=>people.push({...p, familyName:f.name}));
   }
+  const profileIds = people.filter(p => p.user_profile).map(p => p.user_profile);
+  let profiles = [];
+  if (profileIds.length > 0) {
+    const { data: profData } = await supabaseClient
+      .from("profiles")
+      .select("id, role, role_pending")
+      .in("id", profileIds);
+    profiles = profData || [];
+  }
+  const profileMap = {};
+  profiles.forEach(pr => { profileMap[pr.id] = pr; });
   const peopleCont=document.getElementById('peopleTable');
   peopleCont.innerHTML='';
   const peopleTable=document.createElement('table');
   const pHead=document.createElement('tr');
-  ['ID','Name','Family','Delete'].forEach(t=>{const th=document.createElement('th');th.textContent=t;pHead.appendChild(th);});
+  ['ID','Name','Family','Role','Pending','Confirm','Delete'].forEach(t=>{const th=document.createElement('th');th.textContent=t;pHead.appendChild(th);});
   const pThead=document.createElement('thead');pThead.appendChild(pHead);peopleTable.appendChild(pThead);
   const pBody=document.createElement('tbody');
   people.forEach(p=>{
     const row=document.createElement('tr');
     row.innerHTML=`<td>${p.id}</td><td>${p.name}</td><td>${p.familyName}</td>`;
+    const roleTd=document.createElement('td');
+    const prof=profileMap[p.user_profile]||{};
+    roleTd.textContent=prof.role||'';
+    row.appendChild(roleTd);
+    const pendTd=document.createElement('td');
+    pendTd.textContent=prof.role_pending||'';
+    row.appendChild(pendTd);
+    const confirmTd=document.createElement('td');
+    if(prof.role_pending==='manager'){
+      const cBtn=document.createElement('button');
+      cBtn.textContent='Confirm';
+      cBtn.addEventListener('click',async()=>{await supabaseClient.from("profiles").update({role:'manager',role_pending:null}).eq('id',p.user_profile);loadData();});
+      confirmTd.appendChild(cBtn);
+    }
+    row.appendChild(confirmTd);
     const delTd=document.createElement('td');
     const btn=document.createElement('button');
     btn.textContent='Delete';
