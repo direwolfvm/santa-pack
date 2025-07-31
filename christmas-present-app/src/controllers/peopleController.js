@@ -8,7 +8,8 @@ class PeopleController {
         const { name } = req.body;
         const { data, error } = await this.supabase
             .from('person')
-            .insert([{ name, family: familyId }]);
+            .insert([{ name, family: familyId }])
+            .select();
 
         if (error) {
             return res.status(400).json({ error: error.message });
