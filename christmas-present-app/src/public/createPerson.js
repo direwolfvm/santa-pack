@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  const families = await fetch('/api/families').then(r => r.json());
+  const families = await authFetch('/api/families').then(r => r.json());
   const select = document.getElementById('familySelect');
   families.forEach(f => {
     const opt = document.createElement('option');
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     e.preventDefault();
     const name = document.getElementById('personName').value;
     const familyId = select.value;
-    const res = await fetch(`/api/families/${familyId}/people`, {
+    const res = await authFetch(`/api/families/${familyId}/people`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, user_profile: user.id })

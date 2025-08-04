@@ -37,7 +37,7 @@
     document.getElementById('title').textContent = `Presents from ${giverName}`;
 
       async function loadPeople() {
-        const res = await fetch(`/api/families/${familyId}/people`);
+        const res = await authFetch(`/api/families/${familyId}/people`);
         let people = await res.json();
         people = people.filter(p => p.id !== parseInt(giverId, 10));
         loadPresents(people);
@@ -47,7 +47,7 @@
         const body = document.getElementById('presentsTableBody');
         body.innerHTML = '';
         for (const p of people) {
-          const res = await fetch(`/api/presents?giver=${giverId}&receiver=${p.id}&giftRoundId=${giftRoundId}`);
+          const res = await authFetch(`/api/presents?giver=${giverId}&receiver=${p.id}&giftRoundId=${giftRoundId}`);
           const data = await res.json();
           const present = data[0] || {};
 
@@ -135,13 +135,13 @@
       const cloaked = row.querySelector('input[data-field="cloaked"]').value;
 
       if (id) {
-        await fetch(`/api/presents/${id}`, {
+        await authFetch(`/api/presents/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, description, cloakedName: cloaked })
         });
       } else {
-        const res = await fetch('/api/presents', {
+        const res = await authFetch('/api/presents', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, description, cloakedName: cloaked, giver: giverId, receiver: receiverId, giftRoundId })

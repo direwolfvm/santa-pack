@@ -40,14 +40,14 @@
     let otherPeople = [];
 
     async function loadPeople() {
-      const res = await fetch(`/api/families/${familyId}/people`);
+      const res = await authFetch(`/api/families/${familyId}/people`);
       const people = await res.json();
       otherPeople = people.filter(p => String(p.id) !== String(personId));
       loadPresents(otherPeople);
     }
 
     async function loadPresents(others) {
-      const res = await fetch(`/api/presents?receiver=${personId}&giftRoundId=${giftRoundId}`);
+      const res = await authFetch(`/api/presents?receiver=${personId}&giftRoundId=${giftRoundId}`);
       const presents = await res.json();
       const tableBody = document.getElementById('presentsBody');
       tableBody.innerHTML = '';
@@ -128,7 +128,7 @@
           giverCell.classList.remove('hidden');
           resultCell.textContent = select.value && String(select.value) === String(p.giver) ? 'Correct' : 'Incorrect';
           revealBtn.disabled = true;
-          await fetch(`/api/presents/${p.id}`, {
+          await authFetch(`/api/presents/${p.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ revealed: true })
@@ -166,7 +166,7 @@
       const id = e.target.dataset.id;
       const select = row.querySelector('select');
       const guess = select.value || null;
-      await fetch(`/api/presents/${id}`, {
+      await authFetch(`/api/presents/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ receiverGuess: guess })
@@ -199,7 +199,7 @@
         const revealBtn = row.querySelector('.reveal-btn');
         if (revealBtn) revealBtn.disabled = true;
         const id = row.dataset.id;
-        await fetch(`/api/presents/${id}`, {
+        await authFetch(`/api/presents/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ revealed: true })

@@ -22,7 +22,7 @@
     document.getElementById('title').textContent = `${personName} in ${familyName}`;
 
     async function loadRounds() {
-      const res = await fetch(`/api/families/${familyId}/gift-rounds`);
+      const res = await authFetch(`/api/families/${familyId}/gift-rounds`);
       const rounds = await res.json();
       const container = document.getElementById('roundsContainer');
       container.innerHTML = '';

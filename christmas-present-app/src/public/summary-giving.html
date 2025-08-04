@@ -23,8 +23,8 @@
 
     async function loadSummary() {
       const [peopleRes, presentsRes] = await Promise.all([
-        fetch(`/api/families/${familyId}/people`),
-        fetch(`/api/presents?giftRoundId=${giftRoundId}`)
+        authFetch(`/api/families/${familyId}/people`),
+        authFetch(`/api/presents?giftRoundId=${giftRoundId}`)
       ]);
 
       const people = await peopleRes.json();

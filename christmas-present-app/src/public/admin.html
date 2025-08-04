@@ -46,7 +46,7 @@
 
 <script>
 async function loadData() {
-  const families = await fetch('/api/families').then(r => r.json());
+  const families = await authFetch('/api/families').then(r => r.json());
   const famMap = {};
   families.forEach(f => { famMap[f.id] = f.name; });
 
@@ -65,7 +65,7 @@ async function loadData() {
     const delTd=document.createElement('td');
     const btn=document.createElement('button');
     btn.textContent='Delete';
-    btn.addEventListener('click',()=>{fetch(`/api/families/${f.id}`,{method:'DELETE'}).then(loadData);});
+    btn.addEventListener('click',()=>{authFetch(`/api/families/${f.id}`,{method:'DELETE'}).then(loadData);});
     delTd.appendChild(btn);
     row.appendChild(delTd);
     famBody.appendChild(row);
@@ -76,7 +76,7 @@ async function loadData() {
   // Gift rounds
   const rounds = [];
   for (const f of families) {
-    const rs = await fetch(`/api/families/${f.id}/gift-rounds`).then(r => r.json());
+    const rs = await authFetch(`/api/families/${f.id}/gift-rounds`).then(r => r.json());
     rs.forEach(rnd => rounds.push({...rnd, familyName:f.name}));
   }
   const roundCont=document.getElementById('roundsTable');
@@ -92,7 +92,7 @@ async function loadData() {
     const delTd=document.createElement('td');
     const btn=document.createElement('button');
     btn.textContent='Delete';
-    btn.addEventListener('click',()=>{fetch(`/api/families/gift-rounds/${r.id}`,{method:'DELETE'}).then(loadData);});
+    btn.addEventListener('click',()=>{authFetch(`/api/families/gift-rounds/${r.id}`,{method:'DELETE'}).then(loadData);});
     delTd.appendChild(btn);
     row.appendChild(delTd);
     rBody.appendChild(row);
@@ -103,7 +103,7 @@ async function loadData() {
   // People
   const people=[];
   for (const f of families) {
-    const ps = await fetch(`/api/families/${f.id}/people`).then(r => r.json());
+    const ps = await authFetch(`/api/families/${f.id}/people`).then(r => r.json());
     ps.forEach(p=>people.push({...p, familyName:f.name}));
   }
   const profileIds = people.filter(p => p.user_profile).map(p => p.user_profile);
@@ -150,7 +150,7 @@ async function loadData() {
     const delTd=document.createElement('td');
     const btn=document.createElement('button');
     btn.textContent='Delete';
-    btn.addEventListener('click',()=>{fetch(`/api/families/people/${p.id}`,{method:'DELETE'}).then(loadData);});
+    btn.addEventListener('click',()=>{authFetch(`/api/families/people/${p.id}`,{method:'DELETE'}).then(loadData);});
     delTd.appendChild(btn);
     row.appendChild(delTd);
     pBody.appendChild(row);
@@ -159,7 +159,7 @@ async function loadData() {
   peopleCont.appendChild(peopleTable);
 
   // Presents
-  const presents = await fetch('/api/presents').then(r=>r.json());
+  const presents = await authFetch('/api/presents').then(r=>r.json());
   const personMap = {};
   people.forEach(p=>{personMap[p.id]=p.name;});
   const roundMap = {};
@@ -180,7 +180,7 @@ async function loadData() {
     const delTd=document.createElement('td');
     const btn=document.createElement('button');
     btn.textContent='Delete';
-    btn.addEventListener('click',()=>{fetch(`/api/presents/${pr.id}`,{method:'DELETE'}).then(loadData);});
+    btn.addEventListener('click',()=>{authFetch(`/api/presents/${pr.id}`,{method:'DELETE'}).then(loadData);});
     delTd.appendChild(btn);
     row.appendChild(delTd);
     presBody.appendChild(row);

@@ -32,7 +32,7 @@
     const giftRoundId = params.get('giftRoundId');
     document.getElementById('title').textContent = `Summary for ${familyName}`;
     document.getElementById('reopenBtn').addEventListener('click', async () => {
-      await fetch(`/api/families/gift-rounds/${giftRoundId}`, {
+      await authFetch(`/api/families/gift-rounds/${giftRoundId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stage: 'guessing' })
@@ -42,8 +42,8 @@
 
     async function loadData() {
       const [peopleRes, presentsRes] = await Promise.all([
-        fetch(`/api/families/${familyId}/people`),
-        fetch(`/api/presents?giftRoundId=${giftRoundId}`)
+        authFetch(`/api/families/${familyId}/people`),
+        authFetch(`/api/presents?giftRoundId=${giftRoundId}`)
       ]);
       const people = await peopleRes.json();
       const presents = await presentsRes.json();

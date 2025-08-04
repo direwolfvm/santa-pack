@@ -4,6 +4,9 @@ class PeopleController {
     }
 
     async createPerson(req, res) {
+        if (req.role === 'user') {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
         const { familyId } = req.params;
         const { name, user_profile } = req.body;
         const { data, error } = await this.supabase
@@ -19,6 +22,20 @@ class PeopleController {
 
     async getPeople(req, res) {
         const { familyId } = req.params;
+        if (req.role === 'user') {
+            const { data: membership, error: mError } = await this.supabase
+                .from('person')
+                .select('id')
+                .eq('family', familyId)
+                .eq('user_profile', req.user.id)
+                .maybeSingle();
+            if (mError) {
+                return res.status(400).json({ error: mError.message });
+            }
+            if (!membership) {
+                return res.status(403).json({ error: 'Forbidden' });
+            }
+        }
         const { data, error } = await this.supabase
             .from('person')
             .select('*')
@@ -31,6 +48,9 @@ class PeopleController {
     }
 
     async deletePerson(req, res) {
+        if (req.role === 'user') {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
         const { personId } = req.params;
         const { error } = await this.supabase
             .from('person')

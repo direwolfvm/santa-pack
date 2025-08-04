@@ -35,7 +35,7 @@
 
   <script>
     async function fetchFamilies() {
-      const res = await fetch('/api/families');
+      const res = await authFetch('/api/families');
       return res.json();
     }
 
@@ -108,7 +108,7 @@
       const tbody = document.createElement('tbody');
 
       for (const f of families) {
-        const res = await fetch(`/api/families/${f.id}/gift-rounds`);
+        const res = await authFetch(`/api/families/${f.id}/gift-rounds`);
         const rounds = await res.json();
         rounds.forEach(r => {
           const row = document.createElement('tr');
@@ -161,7 +161,7 @@
       const tbody = document.createElement('tbody');
 
       for (const f of families) {
-        const res = await fetch(`/api/families/${f.id}/people`);
+        const res = await authFetch(`/api/families/${f.id}/people`);
         const people = await res.json();
         people.forEach(p => {
           const row = document.createElement('tr');
@@ -192,7 +192,7 @@
       document.getElementById('familyForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const name = document.getElementById('familyName').value;
-        await fetch('/api/families', {
+        await authFetch('/api/families', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name })

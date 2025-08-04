@@ -34,14 +34,14 @@
     document.getElementById('title').textContent = `Guessing Summary for ${familyName}`;
 
     async function loadSummary() {
-      const res = await fetch(`/api/families/${familyId}/people`);
+      const res = await authFetch(`/api/families/${familyId}/people`);
       const people = await res.json();
       const body = document.getElementById('summaryBody');
       body.innerHTML = '';
       let allGuessed = true;
 
       for (const person of people) {
-        const presRes = await fetch(`/api/presents?receiver=${person.id}&giftRoundId=${giftRoundId}`);
+        const presRes = await authFetch(`/api/presents?receiver=${person.id}&giftRoundId=${giftRoundId}`);
         const presents = await presRes.json();
         const relevant = presents.filter(p => String(p.giver) !== String(person.id));
         const guessed = relevant.filter(p => p.receiver_guess !== null).length;
@@ -65,7 +65,7 @@
     }
 
     document.getElementById('completeBtn').addEventListener('click', async () => {
-      await fetch(`/api/families/gift-rounds/${giftRoundId}`, {
+      await authFetch(`/api/families/gift-rounds/${giftRoundId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stage: 'complete' })

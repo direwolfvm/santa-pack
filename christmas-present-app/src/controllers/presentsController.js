@@ -23,9 +23,34 @@ class PresentsController {
     async getPresents(req, res) {
         const { giver, receiver, giftRoundId } = req.query;
         let query = this.supabase.from('present').select('*');
-        if (giver) query = query.eq('giver', giver);
-        if (receiver) query = query.eq('receiver', receiver);
         if (giftRoundId) query = query.eq('gift_round', giftRoundId);
+
+        if (req.role === 'user') {
+            const { data: person, error: pError } = await this.supabase
+                .from('person')
+                .select('id')
+                .eq('user_profile', req.user.id)
+                .maybeSingle();
+            if (pError) {
+                return res.status(400).json({ error: pError.message });
+            }
+            if (!person) {
+                return res.status(200).json([]);
+            }
+            query = query.or(`giver.eq.${person.id},receiver.eq.${person.id}`);
+            if (giver && giver != person.id) {
+                return res.status(403).json({ error: 'Forbidden' });
+            }
+            if (receiver && receiver != person.id) {
+                return res.status(403).json({ error: 'Forbidden' });
+            }
+            if (giver) query = query.eq('giver', person.id);
+            if (receiver) query = query.eq('receiver', person.id);
+        } else {
+            if (giver) query = query.eq('giver', giver);
+            if (receiver) query = query.eq('receiver', receiver);
+        }
+
         const { data, error } = await query;
 
         if (error) {

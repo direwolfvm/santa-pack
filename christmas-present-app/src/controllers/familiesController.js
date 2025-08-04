@@ -4,6 +4,9 @@ class FamiliesController {
     }
 
     async createFamily(req, res) {
+        if (req.role === 'user') {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
         const { name } = req.body;
         const { data, error } = await this.supabase
             .from('family')
@@ -16,6 +19,28 @@ class FamiliesController {
     }
 
     async getFamilies(req, res) {
+        if (req.role === 'user') {
+            const { data: memberships, error: mError } = await this.supabase
+                .from('person')
+                .select('family')
+                .eq('user_profile', req.user.id);
+
+            if (mError) {
+                return res.status(400).json({ error: mError.message });
+            }
+            const familyIds = memberships.map(m => m.family);
+            if (familyIds.length === 0) {
+                return res.status(200).json([]);
+            }
+            const { data, error } = await this.supabase
+                .from('family')
+                .select('*')
+                .in('id', familyIds);
+            if (error) {
+                return res.status(400).json({ error: error.message });
+            }
+            return res.status(200).json(data);
+        }
         const { data, error } = await this.supabase
             .from('family')
             .select('*');
@@ -27,6 +52,9 @@ class FamiliesController {
     }
 
     async deleteFamily(req, res) {
+        if (req.role === 'user') {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
         const { familyId } = req.params;
         const { error } = await this.supabase
             .from('family')

@@ -26,9 +26,9 @@
     document.getElementById('title').textContent = `Gift Rounds for ${familyName}`;
 
     async function loadGiftRounds() {
-      const res = await fetch(`/api/families/${familyId}/gift-rounds`);
+      const res = await authFetch(`/api/families/${familyId}/gift-rounds`);
       const rounds = await res.json();
-      const peopleRes = await fetch(`/api/families/${familyId}/people`);
+      const peopleRes = await authFetch(`/api/families/${familyId}/people`);
       const people = await peopleRes.json();
       const container = document.getElementById('giftRoundsContainer');
 
@@ -64,7 +64,7 @@
         const readyTd = document.createElement('td');
         let ready = false;
         if (r.stage === 'giving' || r.stage === 'guessing') {
-          const presRes = await fetch(`/api/presents?giftRoundId=${r.id}`);
+          const presRes = await authFetch(`/api/presents?giftRoundId=${r.id}`);
           const presents = await presRes.json();
           if (r.stage === 'giving') {
             ready = people.every(p => {
@@ -104,7 +104,7 @@
           newStage = 'guessing';
         }
         switchBtn.addEventListener('click', async () => {
-          await fetch(`/api/families/gift-rounds/${r.id}`, {
+          await authFetch(`/api/families/gift-rounds/${r.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ stage: newStage })
@@ -117,7 +117,7 @@
           const completeBtn = document.createElement('button');
           completeBtn.textContent = 'Complete';
           completeBtn.addEventListener('click', async () => {
-            await fetch(`/api/families/gift-rounds/${r.id}`, {
+            await authFetch(`/api/families/gift-rounds/${r.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ stage: 'complete' })
@@ -151,7 +151,7 @@
     document.getElementById('giftRoundForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const name = document.getElementById('giftRoundName').value;
-      await fetch(`/api/families/${familyId}/gift-rounds`, {
+      await authFetch(`/api/families/${familyId}/gift-rounds`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name })

@@ -2,9 +2,12 @@ const express = require('express');
 const router = express.Router();
 const PresentsController = require('../controllers/presentsController');
 const supabase = require('../db/supabaseClient');
-
+const authenticate = require('../middleware/auth');
 
 const presentsController = new PresentsController(supabase);
+
+// All routes require authentication
+router.use(authenticate);
 
 // Route to create a present
 router.post('/', presentsController.createPresent.bind(presentsController));
