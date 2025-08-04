@@ -31,3 +31,12 @@ async function requireSession() {
 window.authFetch = authFetch;
 window.supabaseClient = supabaseClient;
 window.requireSession = requireSession;
+
+// Immediately enforce login on any page except the dedicated login screen.
+// This runs as soon as the script loads so unauthenticated visitors are
+// redirected before other page scripts execute and hit "Loading..." states.
+const currentPage = window.location.pathname.split('/').pop();
+if (currentPage !== 'login.html') {
+  // Ignore the rejection since requireSession itself performs the redirect.
+  requireSession().catch(() => {});
+}
