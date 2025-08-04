@@ -7,7 +7,7 @@ const presentsRoutes = require('./routes/presents');
 const familiesRoutes = require('./routes/families');
 
 const app = express();
-const PORT = parseInt(process.env.PORT, 10) || 8080;
+const PORT = process.env.PORT || 8080;
 
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
