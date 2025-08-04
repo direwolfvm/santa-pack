@@ -6,9 +6,9 @@ const originalFetch = window.fetch.bind(window);
 window.fetch = async (input, init = {}) => {
   const { data } = await supabaseClient.auth.getSession();
   const token = data.session?.access_token;
-  const headers = init.headers ? { ...init.headers } : {};
+  const headers = new Headers(init.headers || {});
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers.set('Authorization', `Bearer ${token}`);
   }
   return originalFetch(input, { ...init, headers });
 };
