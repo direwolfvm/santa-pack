@@ -19,20 +19,6 @@ class PeopleController {
 
     async getPeople(req, res) {
         const { familyId } = req.params;
-        if (req.user.role === 'user') {
-            const { data: membership, error: membershipError } = await this.supabase
-                .from('person')
-                .select('id')
-                .eq('family', familyId)
-                .eq('user_profile', req.user.id)
-                .maybeSingle();
-            if (membershipError) {
-                return res.status(400).json({ error: membershipError.message });
-            }
-            if (!membership) {
-                return res.status(403).json({ error: 'Access denied' });
-            }
-        }
         const { data, error } = await this.supabase
             .from('person')
             .select('*')

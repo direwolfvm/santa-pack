@@ -33,17 +33,6 @@
     const giftRoundId = params.get('giftRoundId');
     document.getElementById('title').textContent = `Guessing Summary for ${familyName}`;
 
-    const { data: sessionData } = await supabaseClient.auth.getSession();
-    let userRole = 'user';
-    if (sessionData.session) {
-      const { data: profile } = await supabaseClient
-        .from('profiles')
-        .select('role')
-        .eq('id', sessionData.session.user.id)
-        .maybeSingle();
-      if (profile && profile.role) userRole = profile.role;
-    }
-
     async function loadSummary() {
       const res = await fetch(`/api/families/${familyId}/people`);
       const people = await res.json();
@@ -66,7 +55,7 @@
 
       const doneMsg = document.getElementById('allDoneMsg');
       const completeBtn = document.getElementById('completeBtn');
-      if (allGuessed && userRole !== 'user') {
+      if (allGuessed) {
         doneMsg.classList.remove('hidden');
         completeBtn.classList.remove('hidden');
       } else {

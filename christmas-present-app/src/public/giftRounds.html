@@ -25,17 +25,6 @@
     const familyName = params.get('familyName');
     document.getElementById('title').textContent = `Gift Rounds for ${familyName}`;
 
-    const { data: sessionData } = await supabaseClient.auth.getSession();
-    let userRole = 'user';
-    if (sessionData.session) {
-      const { data: profile } = await supabaseClient
-        .from('profiles')
-        .select('role')
-        .eq('id', sessionData.session.user.id)
-        .maybeSingle();
-      if (profile && profile.role) userRole = profile.role;
-    }
-
     async function loadGiftRounds() {
       const res = await fetch(`/api/families/${familyId}/gift-rounds`);
       const rounds = await res.json();
@@ -102,42 +91,40 @@
         });
         actionsTd.appendChild(goBtn);
 
-        if (userRole !== 'user') {
-          const switchBtn = document.createElement('button');
-          let newStage;
-          if (r.stage === 'giving') {
-            switchBtn.textContent = 'Switch to Guessing';
-            newStage = 'guessing';
-          } else if (r.stage === 'guessing') {
-            switchBtn.textContent = 'Switch to Giving';
-            newStage = 'giving';
-          } else {
-            switchBtn.textContent = 'Reopen Guessing';
-            newStage = 'guessing';
-          }
-          switchBtn.addEventListener('click', async () => {
+        const switchBtn = document.createElement('button');
+        let newStage;
+        if (r.stage === 'giving') {
+          switchBtn.textContent = 'Switch to Guessing';
+          newStage = 'guessing';
+        } else if (r.stage === 'guessing') {
+          switchBtn.textContent = 'Switch to Giving';
+          newStage = 'giving';
+        } else {
+          switchBtn.textContent = 'Reopen Guessing';
+          newStage = 'guessing';
+        }
+        switchBtn.addEventListener('click', async () => {
+          await fetch(`/api/families/gift-rounds/${r.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stage: newStage })
+          });
+          loadGiftRounds();
+        });
+        actionsTd.appendChild(switchBtn);
+
+        if (r.stage === 'guessing' && ready) {
+          const completeBtn = document.createElement('button');
+          completeBtn.textContent = 'Complete';
+          completeBtn.addEventListener('click', async () => {
             await fetch(`/api/families/gift-rounds/${r.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ stage: newStage })
+              body: JSON.stringify({ stage: 'complete' })
             });
             loadGiftRounds();
           });
-          actionsTd.appendChild(switchBtn);
-
-          if (r.stage === 'guessing' && ready) {
-            const completeBtn = document.createElement('button');
-            completeBtn.textContent = 'Complete';
-            completeBtn.addEventListener('click', async () => {
-              await fetch(`/api/families/gift-rounds/${r.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ stage: 'complete' })
-              });
-              loadGiftRounds();
-            });
-            actionsTd.appendChild(completeBtn);
-          }
+          actionsTd.appendChild(completeBtn);
         }
 
         row.appendChild(actionsTd);
