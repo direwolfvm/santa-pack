@@ -4,10 +4,13 @@ const FamiliesController = require('../controllers/familiesController');
 const GiftRoundsController = require('../controllers/giftRoundsController');
 const PeopleController = require('../controllers/peopleController');
 const supabase = require('../db/supabaseClient');
+const authenticate = require('../middleware/authenticate');
 
 const familiesController = new FamiliesController(supabase);
 const giftRoundsController = new GiftRoundsController(supabase);
 const peopleController = new PeopleController(supabase);
+
+router.use(authenticate);
 
 // List families
 router.get('/', familiesController.getFamilies.bind(familiesController));
