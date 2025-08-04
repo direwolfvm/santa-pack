@@ -32,7 +32,7 @@
 
       const { data: profile } = await supabaseClient
         .from('profiles')
-        .select('role, role_pending, person_id')
+        .select('role, role_pending')
         .eq('id', user.id)
         .single();
 
@@ -55,39 +55,22 @@
           }
         }
 
-        if (currentProfile.person_id) {
-          const { data: person } = await supabaseClient
-            .from('person')
-            .select('name')
-            .eq('id', currentProfile.person_id)
-            .maybeSingle();
-          if (person) {
-            document.getElementById('name').textContent = `Name: ${person.name}`;
-          } else {
-            document.getElementById('name').textContent = 'Name: (not set)';
-          }
+        const { data: person } = await supabaseClient
+          .from('person')
+          .select('name')
+          .eq('user_profile', user.id)
+          .maybeSingle();
+        if (person) {
+          document.getElementById('name').textContent = `Name: ${person.name}`;
         } else {
-          const { data: person } = await supabaseClient
-            .from('person')
-            .select('name')
-            .eq('user_profile', user.id)
-            .maybeSingle();
-          if (person) {
-            document.getElementById('name').textContent = `Name: ${person.name}`;
-          } else {
-            document.getElementById('name').textContent = 'Name: (not set)';
-          }
+          document.getElementById('name').textContent = 'Name: (not set)';
         }
       }
 
       document.getElementById('editNameBtn').addEventListener('click', async () => {
         const newName = prompt('Enter new name:');
         if (!newName) return;
-        if (currentProfile && currentProfile.person_id) {
-          await supabaseClient.from('person').update({ name: newName }).eq('id', currentProfile.person_id);
-        } else {
-          await supabaseClient.from('person').update({ name: newName }).eq('user_profile', user.id);
-        }
+        await supabaseClient.from('person').update({ name: newName }).eq('user_profile', user.id);
         document.getElementById('name').textContent = `Name: ${newName}`;
       });
 
