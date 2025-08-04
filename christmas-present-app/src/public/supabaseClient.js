@@ -4,11 +4,19 @@ cm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNDUzMTAsImV4cCI6MjA2NzgyMTMxMH0.QURkxMU1XcS7TfO1
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function authFetch(url, options = {}) {
-  const { data } = await supabaseClient.auth.getSession();
-  const token = data.session?.access_token;
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) {
+    window.location.href = 'login.html';
+    throw new Error('No active session');
+  }
   const headers = options.headers ? { ...options.headers } : {};
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-  return fetch(url, { ...options, headers });
+  headers['Authorization'] = `Bearer ${session.access_token}`;
+  const res = await fetch(url, { ...options, headers });
+  if (res.status === 401) {
+    window.location.href = 'login.html';
+    throw new Error('Unauthorized');
+  }
+  return res;
 }
 
 window.authFetch = authFetch;

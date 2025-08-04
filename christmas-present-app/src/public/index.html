@@ -36,19 +36,20 @@
   <script>
     async function fetchFamilies() {
       const res = await authFetch('/api/families');
-      return res.json();
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch families');
+      return data;
     }
 
     async function loadFamilies() {
-      const families = await fetchFamilies();
       const container = document.getElementById('familiesContainer');
-
       container.innerHTML = '';
-
-      if (families.length === 0) {
-        container.textContent = 'No families yet.';
-        return;
-      }
+      try {
+        const families = await fetchFamilies();
+        if (families.length === 0) {
+          container.textContent = 'No families yet.';
+          return;
+        }
 
       const table = document.createElement('table');
       const thead = document.createElement('thead');
@@ -83,17 +84,20 @@
 
       table.appendChild(tbody);
       container.appendChild(table);
+      } catch (err) {
+        container.textContent = 'Failed to load families.';
+      }
     }
 
     async function loadGiftRounds() {
-      const families = await fetchFamilies();
       const container = document.getElementById('giftRoundsContainer');
       container.innerHTML = '';
-
-      if (families.length === 0) {
-        container.textContent = 'No families yet.';
-        return;
-      }
+      try {
+        const families = await fetchFamilies();
+        if (families.length === 0) {
+          container.textContent = 'No families yet.';
+          return;
+        }
 
       const table = document.createElement('table');
       const thead = document.createElement('thead');
@@ -136,17 +140,20 @@
 
       table.appendChild(tbody);
       container.appendChild(table);
+      } catch (err) {
+        container.textContent = 'Failed to load gift rounds.';
+      }
     }
 
     async function loadPeople() {
-      const families = await fetchFamilies();
       const container = document.getElementById('peopleContainer');
       container.innerHTML = '';
-
-      if (families.length === 0) {
-        container.textContent = 'No families yet.';
-        return;
-      }
+      try {
+        const families = await fetchFamilies();
+        if (families.length === 0) {
+          container.textContent = 'No families yet.';
+          return;
+        }
 
       const table = document.createElement('table');
       const thead = document.createElement('thead');
@@ -185,6 +192,9 @@
 
       table.appendChild(tbody);
       container.appendChild(table);
+      } catch (err) {
+        container.textContent = 'Failed to load people.';
+      }
     }
 
 
