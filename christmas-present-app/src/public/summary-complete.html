@@ -12,7 +12,7 @@
 <body>
   <div id="nav"></div>
   <h1 id="title">Gift Round Summary (Complete)</h1>
-  <button id="reopenBtn">Reopen Guessing</button>
+  <button id="reopenBtn" class="hidden">Reopen Guessing</button>
   <table border="1" id="summaryTable">
     <thead>
       <tr>
@@ -31,14 +31,29 @@
     const familyName = params.get('familyName');
     const giftRoundId = params.get('giftRoundId');
     document.getElementById('title').textContent = `Summary for ${familyName}`;
-    document.getElementById('reopenBtn').addEventListener('click', async () => {
-      await fetch(`/api/families/gift-rounds/${giftRoundId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stage: 'guessing' })
+
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+    let userRole = 'user';
+    if (sessionData.session) {
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('role')
+        .eq('id', sessionData.session.user.id)
+        .maybeSingle();
+      if (profile && profile.role) userRole = profile.role;
+    }
+    const reopenBtn = document.getElementById('reopenBtn');
+    if (userRole !== 'user') {
+      reopenBtn.classList.remove('hidden');
+      reopenBtn.addEventListener('click', async () => {
+        await fetch(`/api/families/gift-rounds/${giftRoundId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stage: 'guessing' })
+        });
+        window.location.href = `summary-guessing.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${giftRoundId}&stage=guessing`;
       });
-      window.location.href = `summary-guessing.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${giftRoundId}&stage=guessing`;
-    });
+    }
 
     async function loadData() {
       const [peopleRes, presentsRes] = await Promise.all([
