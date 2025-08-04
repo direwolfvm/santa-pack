@@ -1,17 +1,12 @@
 async function initNav() {
   const navContainer = document.getElementById('nav');
   if (!navContainer) return;
-
-  const { data } = await supabaseClient.auth.getSession();
-  if (!data.session) {
-    window.location.href = 'login.html';
-    return;
-  }
+  const session = await requireSession();
 
   const { data: person } = await supabaseClient
     .from('person')
     .select('id')
-    .eq('user_profile', data.session.user.id)
+    .eq('user_profile', session.user.id)
     .maybeSingle();
   if (!person) {
     window.location.href = 'createPerson.html';

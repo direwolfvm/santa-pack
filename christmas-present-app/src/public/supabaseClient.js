@@ -19,5 +19,15 @@ async function authFetch(url, options = {}) {
   return res;
 }
 
+async function requireSession() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) {
+    window.location.href = 'login.html';
+    throw new Error('No active session');
+  }
+  return session;
+}
+
 window.authFetch = authFetch;
 window.supabaseClient = supabaseClient;
+window.requireSession = requireSession;

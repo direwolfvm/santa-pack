@@ -199,6 +199,8 @@
 
 
     (async () => {
+      const session = await requireSession();
+
       document.getElementById('familyForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const name = document.getElementById('familyName').value;
@@ -219,16 +221,13 @@
       });
 
       // Show the management console button only for admin users
-      const { data: sessionData } = await supabaseClient.auth.getSession();
-      if (sessionData.session) {
-        const { data: profile } = await supabaseClient
-          .from('profiles')
-          .select('role')
-          .eq('id', sessionData.session.user.id)
-          .maybeSingle();
-        if (profile && profile.role === 'admin') {
-          adminBtn.style.display = 'block';
-        }
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .maybeSingle();
+      if (profile && profile.role === 'admin') {
+        adminBtn.style.display = 'block';
       }
 
       loadFamilies();
