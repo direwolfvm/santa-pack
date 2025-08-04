@@ -16,6 +16,11 @@ async function initNav() {
   if (!person) {
     window.location.href = 'createPerson.html';
     return;
+  } else {
+    await supabaseClient
+      .from('profiles')
+      .update({ person_id: person.id })
+      .eq('id', data.session.user.id);
   }
 
   const params = new URLSearchParams(window.location.search);

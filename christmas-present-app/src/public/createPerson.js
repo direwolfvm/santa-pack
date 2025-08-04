@@ -11,6 +11,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     .eq('user_profile', user.id)
     .maybeSingle();
   if (existingPerson) {
+    await supabaseClient
+      .from('profiles')
+      .update({ person_id: existingPerson.id })
+      .eq('id', user.id);
     window.location.href = 'index.html';
     return;
   }
@@ -35,6 +39,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     const created = (await res.json())[0];
     if (created) {
+      await supabaseClient
+        .from('profiles')
+        .update({ person_id: created.id })
+        .eq('id', user.id);
       window.location.href = 'index.html';
     }
   });
