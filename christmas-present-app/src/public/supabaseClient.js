@@ -35,8 +35,8 @@ window.requireSession = requireSession;
 // Immediately enforce login on any page except the dedicated login screen.
 // This runs as soon as the script loads so unauthenticated visitors are
 // redirected before other page scripts execute and hit "Loading..." states.
-const currentPage = window.location.pathname.split('/').pop();
-if (currentPage !== 'login.html') {
+const currentPage = window.location.pathname.split('/').pop()?.toLowerCase();
+if (!currentPage || !currentPage.startsWith('login')) {
   // Ignore the rejection since requireSession itself performs the redirect.
   requireSession().catch(() => {});
 }
