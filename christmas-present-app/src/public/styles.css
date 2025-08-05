@@ -80,9 +80,10 @@ form {
 
 table {
   border-collapse: collapse;
+  width: 100%;
   margin-top: 1rem;
-  margin-left: auto;
-  margin-right: auto;
+  margin-left: 0;
+  margin-right: 0;
   border: 5px solid transparent;
   border-image: repeating-linear-gradient(45deg, #0a0 0, #060 10px, #0a0 20px) 5;
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
@@ -91,6 +92,7 @@ table {
 th, td {
   border: 1px solid #060;
   padding: 0.5rem 1rem;
+  text-align: left;
 }
 
 th {
