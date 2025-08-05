@@ -21,81 +21,102 @@
     <input type="text" id="personName" required />
     <button type="submit">Add Person</button>
   </form>
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const familyId = params.get('familyId');
-    const familyName = params.get('familyName');
-    const giftRoundId = params.get('giftRoundId');
-    const giftRoundStage = params.get('stage');
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const familyId = params.get('familyId');
+      const familyName = params.get('familyName');
+      const giftRoundId = params.get('giftRoundId');
+      const giftRoundStage = params.get('stage');
 
-    async function setTitle() {
-      const res = await fetch(`/api/families/${familyId}/gift-rounds`);
-      const rounds = await res.json();
-      const round = rounds.find(r => String(r.id) === String(giftRoundId));
-      const name = round ? round.name : 'Gift Round';
-      document.title = `People - ${name}`;
-      document.getElementById('title').textContent = `People for ${name}`;
-    }
+      async function init() {
+        const { data: sessionData } = await supabaseClient.auth.getSession();
+        if (!sessionData.session) {
+          window.location.href = 'login.html';
+          return;
+        }
+        const userId = sessionData.session.user.id;
+        const { data: membership } = await supabaseClient
+          .from('person')
+          .select('id')
+          .eq('family', familyId)
+          .eq('user_profile', userId)
+          .maybeSingle();
+        if (!membership) {
+          window.location.href = 'index.html';
+          return;
+        }
 
-    async function loadPeople() {
-      const res = await fetch(`/api/families/${familyId}/people`);
-      const people = await res.json();
-      const container = document.getElementById('peopleContainer');
-      container.innerHTML = '';
-      if (people.length === 0) {
-        container.textContent = 'No people yet. Add someone below.';
-        return;
+        async function setTitle() {
+          const res = await fetch(`/api/families/${familyId}/gift-rounds`);
+          const rounds = await res.json();
+          const round = rounds.find(r => String(r.id) === String(giftRoundId));
+          const name = round ? round.name : 'Gift Round';
+          document.title = `People - ${name}`;
+          document.getElementById('title').textContent = `People for ${name}`;
+        }
+
+        async function loadPeople() {
+          const res = await fetch(`/api/families/${familyId}/people`);
+          const people = await res.json();
+          const container = document.getElementById('peopleContainer');
+          container.innerHTML = '';
+          if (people.length === 0) {
+            container.textContent = 'No people yet. Add someone below.';
+            return;
+          }
+
+          const table = document.createElement('table');
+          const thead = document.createElement('thead');
+          const headRow = document.createElement('tr');
+          ['Name', 'Action'].forEach(t => {
+            const th = document.createElement('th');
+            th.textContent = t;
+            headRow.appendChild(th);
+          });
+          thead.appendChild(headRow);
+          table.appendChild(thead);
+
+          const tbody = document.createElement('tbody');
+          people.forEach(p => {
+            const row = document.createElement('tr');
+            const nameTd = document.createElement('td');
+            nameTd.textContent = p.name;
+            row.appendChild(nameTd);
+
+            const actionTd = document.createElement('td');
+            const btn = document.createElement('button');
+            btn.classList.add('table-btn');
+            btn.textContent = giftRoundStage === 'guessing' ? 'Guess' : 'Give';
+            btn.addEventListener('click', () => {
+              const page = giftRoundStage === 'guessing' ? 'guesses.html' : 'presents.html';
+              window.location.href = `${page}?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${giftRoundId}&personId=${p.id}&personName=${encodeURIComponent(p.name)}&stage=${encodeURIComponent(giftRoundStage)}`;
+            });
+            actionTd.appendChild(btn);
+            row.appendChild(actionTd);
+            tbody.appendChild(row);
+          });
+
+          table.appendChild(tbody);
+          container.appendChild(table);
+        }
+
+        document.getElementById('personForm').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const name = document.getElementById('personName').value;
+          await fetch(`/api/families/${familyId}/people`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+          });
+          document.getElementById('personName').value = '';
+          loadPeople();
+        });
+
+        setTitle();
+        loadPeople();
       }
 
-      const table = document.createElement('table');
-      const thead = document.createElement('thead');
-      const headRow = document.createElement('tr');
-      ['Name', 'Action'].forEach(t => {
-        const th = document.createElement('th');
-        th.textContent = t;
-        headRow.appendChild(th);
-      });
-      thead.appendChild(headRow);
-      table.appendChild(thead);
-
-      const tbody = document.createElement('tbody');
-      people.forEach(p => {
-        const row = document.createElement('tr');
-        const nameTd = document.createElement('td');
-        nameTd.textContent = p.name;
-        row.appendChild(nameTd);
-
-        const actionTd = document.createElement('td');
-        const btn = document.createElement('button');
-        btn.classList.add('table-btn');
-        btn.textContent = giftRoundStage === 'guessing' ? 'Guess' : 'Give';
-        btn.addEventListener('click', () => {
-          const page = giftRoundStage === 'guessing' ? 'guesses.html' : 'presents.html';
-          window.location.href = `${page}?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${giftRoundId}&personId=${p.id}&personName=${encodeURIComponent(p.name)}&stage=${encodeURIComponent(giftRoundStage)}`;
-        });
-        actionTd.appendChild(btn);
-        row.appendChild(actionTd);
-        tbody.appendChild(row);
-      });
-
-      table.appendChild(tbody);
-      container.appendChild(table);
-    }
-
-    document.getElementById('personForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const name = document.getElementById('personName').value;
-      await fetch(`/api/families/${familyId}/people`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name })
-      });
-      document.getElementById('personName').value = '';
-      loadPeople();
-    });
-
-    setTitle();
-    loadPeople();
-  </script>
+      init();
+    </script>
 </body>
 </html>

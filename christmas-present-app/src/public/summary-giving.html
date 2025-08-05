@@ -13,62 +13,90 @@
   <div id="nav"></div>
   <h1 id="title">Gift Round Summary (Giving Stage)</h1>
   <div id="summaryContainer">Loading...</div>
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const familyId = params.get('familyId');
-    const familyName = params.get('familyName');
-    const giftRoundId = params.get('giftRoundId');
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const familyId = params.get('familyId');
+      const familyName = params.get('familyName');
+      const giftRoundId = params.get('giftRoundId');
 
-    document.getElementById('title').textContent = `Giving Summary for ${familyName}`;
+      document.getElementById('title').textContent = `Giving Summary for ${familyName}`;
 
-    async function loadSummary() {
-      const [peopleRes, presentsRes] = await Promise.all([
-        fetch(`/api/families/${familyId}/people`),
-        fetch(`/api/presents?giftRoundId=${giftRoundId}`)
-      ]);
+      async function init() {
+        const { data: sessionData } = await supabaseClient.auth.getSession();
+        if (!sessionData.session) {
+          window.location.href = 'login.html';
+          return;
+        }
+        const userId = sessionData.session.user.id;
+        const [{ data: membership }, { data: profile }] = await Promise.all([
+          supabaseClient
+            .from('person')
+            .select('id')
+            .eq('family', familyId)
+            .eq('user_profile', userId)
+            .maybeSingle(),
+          supabaseClient
+            .from('profiles')
+            .select('role')
+            .eq('id', userId)
+            .maybeSingle()
+        ]);
+        if (!membership || !profile || profile.role !== 'admin') {
+          window.location.href = 'index.html';
+          return;
+        }
 
-      const people = await peopleRes.json();
-      const presents = await presentsRes.json();
+        async function loadSummary() {
+          const [peopleRes, presentsRes] = await Promise.all([
+            fetch(`/api/families/${familyId}/people`),
+            fetch(`/api/presents?giftRoundId=${giftRoundId}`)
+          ]);
 
-      const container = document.getElementById('summaryContainer');
-      container.innerHTML = '';
+          const people = await peopleRes.json();
+          const presents = await presentsRes.json();
 
-      if (people.length === 0) {
-        container.textContent = 'No people found.';
-        return;
+          const container = document.getElementById('summaryContainer');
+          container.innerHTML = '';
+
+          if (people.length === 0) {
+            container.textContent = 'No people found.';
+            return;
+          }
+
+          const table = document.createElement('table');
+          const thead = document.createElement('thead');
+          const headRow = document.createElement('tr');
+          ['Person', 'Gifts Given', 'Status'].forEach(text => {
+            const th = document.createElement('th');
+            th.textContent = text;
+            headRow.appendChild(th);
+          });
+          thead.appendChild(headRow);
+          table.appendChild(thead);
+
+          const tbody = document.createElement('tbody');
+
+          people.forEach(person => {
+            const given = presents.filter(p => String(p.giver) === String(person.id));
+            const count = given.length;
+            const done = count >= (people.length - 1);
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${person.name}</td>
+              <td>${count}</td>
+              <td>${done ? '✔️' : ''}</td>
+            `;
+            tbody.appendChild(row);
+          });
+
+          table.appendChild(tbody);
+          container.appendChild(table);
+        }
+
+        loadSummary();
       }
 
-      const table = document.createElement('table');
-      const thead = document.createElement('thead');
-      const headRow = document.createElement('tr');
-      ['Person', 'Gifts Given', 'Status'].forEach(text => {
-        const th = document.createElement('th');
-        th.textContent = text;
-        headRow.appendChild(th);
-      });
-      thead.appendChild(headRow);
-      table.appendChild(thead);
-
-      const tbody = document.createElement('tbody');
-
-      people.forEach(person => {
-        const given = presents.filter(p => String(p.giver) === String(person.id));
-        const count = given.length;
-        const done = count >= (people.length - 1);
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${person.name}</td>
-          <td>${count}</td>
-          <td>${done ? '✔️' : ''}</td>
-        `;
-        tbody.appendChild(row);
-      });
-
-      table.appendChild(tbody);
-      container.appendChild(table);
-    }
-
-    loadSummary();
-  </script>
+      init();
+    </script>
 </body>
 </html>

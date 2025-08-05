@@ -25,26 +25,58 @@
     <tbody></tbody>
   </table>
 
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const familyId = params.get('familyId');
-    const familyName = params.get('familyName');
-    const giftRoundId = params.get('giftRoundId');
-    document.getElementById('title').textContent = `Summary for ${familyName}`;
-    document.getElementById('reopenBtn').addEventListener('click', async () => {
-      await fetch(`/api/families/gift-rounds/${giftRoundId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stage: 'guessing' })
-      });
-      window.location.href = `summary-guessing.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${giftRoundId}&stage=guessing`;
-    });
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const familyId = params.get('familyId');
+      const familyName = params.get('familyName');
+      const giftRoundId = params.get('giftRoundId');
+      document.getElementById('title').textContent = `Summary for ${familyName}`;
 
-    async function loadData() {
-      const [peopleRes, presentsRes] = await Promise.all([
-        fetch(`/api/families/${familyId}/people`),
-        fetch(`/api/presents?giftRoundId=${giftRoundId}`)
-      ]);
+      async function init() {
+        const { data: sessionData } = await supabaseClient.auth.getSession();
+        if (!sessionData.session) {
+          window.location.href = 'login.html';
+          return;
+        }
+        const userId = sessionData.session.user.id;
+        const [{ data: membership }, { data: profile }] = await Promise.all([
+          supabaseClient
+            .from('person')
+            .select('id')
+            .eq('family', familyId)
+            .eq('user_profile', userId)
+            .maybeSingle(),
+          supabaseClient
+            .from('profiles')
+            .select('role')
+            .eq('id', userId)
+            .maybeSingle()
+        ]);
+        if (!membership) {
+          window.location.href = 'index.html';
+          return;
+        }
+        const isAdmin = profile && profile.role === 'admin';
+        const token = sessionData.session.access_token;
+
+        if (isAdmin) {
+          document.getElementById('reopenBtn').addEventListener('click', async () => {
+            await fetch(`/api/families/gift-rounds/${giftRoundId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ stage: 'guessing' })
+            });
+            window.location.href = `summary-guessing.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${giftRoundId}&stage=guessing`;
+          });
+        } else {
+          document.getElementById('reopenBtn').style.display = 'none';
+        }
+
+        async function loadData() {
+          const [peopleRes, presentsRes] = await Promise.all([
+            fetch(`/api/families/${familyId}/people`),
+            fetch(`/api/presents?giftRoundId=${giftRoundId}`)
+          ]);
       const people = await peopleRes.json();
       const presents = await presentsRes.json();
 
@@ -99,9 +131,12 @@
 
       setupSorting();
       render();
-    }
+        }
 
-    loadData();
-  </script>
+        loadData();
+      }
+
+      init();
+    </script>
 </body>
 </html>

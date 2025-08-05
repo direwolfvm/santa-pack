@@ -19,148 +19,182 @@
     <input type="text" id="giftRoundName" required />
     <button type="submit">Create Gift Round</button>
   </form>
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const familyId = params.get('familyId');
-    const familyName = params.get('familyName');
-    document.getElementById('title').textContent = `Gift Rounds for ${familyName}`;
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const familyId = params.get('familyId');
+      const familyName = params.get('familyName');
+      document.getElementById('title').textContent = `Gift Rounds for ${familyName}`;
 
-    async function loadGiftRounds() {
-      const res = await fetch(`/api/families/${familyId}/gift-rounds`);
-      const rounds = await res.json();
-      const peopleRes = await fetch(`/api/families/${familyId}/people`);
-      const people = await peopleRes.json();
-      const container = document.getElementById('giftRoundsContainer');
+      async function init() {
+        const { data: sessionData } = await supabaseClient.auth.getSession();
+        if (!sessionData.session) {
+          window.location.href = 'login.html';
+          return;
+        }
+        const userId = sessionData.session.user.id;
+        const [{ data: membership }, { data: profile }] = await Promise.all([
+          supabaseClient
+            .from('person')
+            .select('id')
+            .eq('family', familyId)
+            .eq('user_profile', userId)
+            .maybeSingle(),
+          supabaseClient
+            .from('profiles')
+            .select('role')
+            .eq('id', userId)
+            .maybeSingle()
+        ]);
+        if (!membership) {
+          window.location.href = 'index.html';
+          return;
+        }
+        const isAdmin = profile && profile.role === 'admin';
+        const token = sessionData.session.access_token;
 
-      container.innerHTML = '';
+        async function loadGiftRounds() {
+          const res = await fetch(`/api/families/${familyId}/gift-rounds`);
+          const rounds = await res.json();
+          const peopleRes = await fetch(`/api/families/${familyId}/people`);
+          const people = await peopleRes.json();
+          const container = document.getElementById('giftRoundsContainer');
 
-      if (rounds.length === 0) {
-        container.textContent = 'No gift rounds yet.';
-        return;
-      }
+          container.innerHTML = '';
 
-      const table = document.createElement('table');
-      const thead = document.createElement('thead');
-      const headRow = document.createElement('tr');
-      ['Name', 'Stage', 'Ready', 'Actions', 'Summary'].forEach(text => {
-        const th = document.createElement('th');
-        th.textContent = text;
-        headRow.appendChild(th);
-      });
-      thead.appendChild(headRow);
-      table.appendChild(thead);
-      const tbody = document.createElement('tbody');
-
-      for (const r of rounds) {
-        const row = document.createElement('tr');
-        const nameTd = document.createElement('td');
-        nameTd.textContent = r.name;
-        row.appendChild(nameTd);
-
-        const stageTd = document.createElement('td');
-        stageTd.textContent = r.stage;
-        row.appendChild(stageTd);
-
-        const readyTd = document.createElement('td');
-        let ready = false;
-        if (r.stage === 'giving' || r.stage === 'guessing') {
-          const presRes = await fetch(`/api/presents?giftRoundId=${r.id}`);
-          const presents = await presRes.json();
-          if (r.stage === 'giving') {
-            ready = people.every(p => {
-              const given = presents.filter(pr => String(pr.giver) === String(p.id));
-              return given.length >= (people.length - 1);
-            });
-          } else {
-            ready = people.every(p => {
-              const relevant = presents.filter(pr => String(pr.receiver) === String(p.id) && String(pr.giver) !== String(p.id));
-              const guessed = relevant.filter(pr => pr.receiver_guess !== null).length;
-              return guessed >= relevant.length;
-            });
+          if (rounds.length === 0) {
+            container.textContent = 'No gift rounds yet.';
+            return;
           }
-        }
-        readyTd.textContent = ready ? '✔️' : '';
-        row.appendChild(readyTd);
 
-        const actionsTd = document.createElement('td');
-
-        const goBtn = document.createElement('button');
-        goBtn.textContent = 'Go to People';
-        goBtn.addEventListener('click', () => {
-          window.location.href = `people.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${r.id}&stage=${encodeURIComponent(r.stage)}`;
-        });
-        actionsTd.appendChild(goBtn);
-
-        const switchBtn = document.createElement('button');
-        let newStage;
-        if (r.stage === 'giving') {
-          switchBtn.textContent = 'Switch to Guessing';
-          newStage = 'guessing';
-        } else if (r.stage === 'guessing') {
-          switchBtn.textContent = 'Switch to Giving';
-          newStage = 'giving';
-        } else {
-          switchBtn.textContent = 'Reopen Guessing';
-          newStage = 'guessing';
-        }
-        switchBtn.addEventListener('click', async () => {
-          await fetch(`/api/families/gift-rounds/${r.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ stage: newStage })
+          const table = document.createElement('table');
+          const thead = document.createElement('thead');
+          const headRow = document.createElement('tr');
+          ['Name', 'Stage', 'Ready', 'Actions', 'Summary'].forEach(text => {
+            const th = document.createElement('th');
+            th.textContent = text;
+            headRow.appendChild(th);
           });
+          thead.appendChild(headRow);
+          table.appendChild(thead);
+          const tbody = document.createElement('tbody');
+
+          for (const r of rounds) {
+            const row = document.createElement('tr');
+            const nameTd = document.createElement('td');
+            nameTd.textContent = r.name;
+            row.appendChild(nameTd);
+
+            const stageTd = document.createElement('td');
+            stageTd.textContent = r.stage;
+            row.appendChild(stageTd);
+
+            const readyTd = document.createElement('td');
+            let ready = false;
+            if (isAdmin && (r.stage === 'giving' || r.stage === 'guessing')) {
+              const presRes = await fetch(`/api/presents?giftRoundId=${r.id}`);
+              const presents = await presRes.json();
+              if (r.stage === 'giving') {
+                ready = people.every(p => {
+                  const given = presents.filter(pr => String(pr.giver) === String(p.id));
+                  return given.length >= (people.length - 1);
+                });
+              } else {
+                ready = people.every(p => {
+                  const relevant = presents.filter(pr => String(pr.receiver) === String(p.id) && String(pr.giver) !== String(p.id));
+                  const guessed = relevant.filter(pr => pr.receiver_guess !== null).length;
+                  return guessed >= relevant.length;
+                });
+              }
+            }
+            readyTd.textContent = ready && isAdmin ? '✔️' : '';
+            row.appendChild(readyTd);
+
+            const actionsTd = document.createElement('td');
+
+            const goBtn = document.createElement('button');
+            goBtn.textContent = 'Go to People';
+            goBtn.addEventListener('click', () => {
+              window.location.href = `people.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${r.id}&stage=${encodeURIComponent(r.stage)}`;
+            });
+            actionsTd.appendChild(goBtn);
+
+            if (isAdmin) {
+              const switchBtn = document.createElement('button');
+              let newStage;
+              if (r.stage === 'giving') {
+                switchBtn.textContent = 'Switch to Guessing';
+                newStage = 'guessing';
+              } else if (r.stage === 'guessing') {
+                switchBtn.textContent = 'Switch to Giving';
+                newStage = 'giving';
+              } else {
+                switchBtn.textContent = 'Reopen Guessing';
+                newStage = 'guessing';
+              }
+              switchBtn.addEventListener('click', async () => {
+                await fetch(`/api/families/gift-rounds/${r.id}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                  body: JSON.stringify({ stage: newStage })
+                });
+                loadGiftRounds();
+              });
+              actionsTd.appendChild(switchBtn);
+
+              if (r.stage === 'guessing' && ready) {
+                const completeBtn = document.createElement('button');
+                completeBtn.textContent = 'Complete';
+                completeBtn.addEventListener('click', async () => {
+                  await fetch(`/api/families/gift-rounds/${r.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ stage: 'complete' })
+                  });
+                  loadGiftRounds();
+                });
+                actionsTd.appendChild(completeBtn);
+              }
+            }
+
+            row.appendChild(actionsTd);
+
+            const summaryTd = document.createElement('td');
+            if (isAdmin) {
+              const summaryBtn = document.createElement('button');
+              summaryBtn.textContent = 'View Summary';
+              summaryBtn.addEventListener('click', () => {
+                let page;
+                if (r.stage === 'giving') page = 'summary-giving.html';
+                else if (r.stage === 'guessing') page = 'summary-guessing.html';
+                else page = 'summary-complete.html';
+                window.location.href = `${page}?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${r.id}&stage=${encodeURIComponent(r.stage)}`;
+              });
+              summaryTd.appendChild(summaryBtn);
+            }
+            row.appendChild(summaryTd);
+            tbody.appendChild(row);
+          }
+
+          table.appendChild(tbody);
+          container.appendChild(table);
+        }
+
+        document.getElementById('giftRoundForm').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const name = document.getElementById('giftRoundName').value;
+          await fetch(`/api/families/${familyId}/gift-rounds`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+          });
+          document.getElementById('giftRoundName').value = '';
           loadGiftRounds();
         });
-        actionsTd.appendChild(switchBtn);
 
-        if (r.stage === 'guessing' && ready) {
-          const completeBtn = document.createElement('button');
-          completeBtn.textContent = 'Complete';
-          completeBtn.addEventListener('click', async () => {
-            await fetch(`/api/families/gift-rounds/${r.id}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ stage: 'complete' })
-            });
-            loadGiftRounds();
-          });
-          actionsTd.appendChild(completeBtn);
-        }
-
-        row.appendChild(actionsTd);
-
-        const summaryTd = document.createElement('td');
-        const summaryBtn = document.createElement('button');
-        summaryBtn.textContent = 'View Summary';
-        summaryBtn.addEventListener('click', () => {
-          let page;
-          if (r.stage === 'giving') page = 'summary-giving.html';
-          else if (r.stage === 'guessing') page = 'summary-guessing.html';
-          else page = 'summary-complete.html';
-          window.location.href = `${page}?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${r.id}&stage=${encodeURIComponent(r.stage)}`;
-        });
-        summaryTd.appendChild(summaryBtn);
-        row.appendChild(summaryTd);
-        tbody.appendChild(row);
+        loadGiftRounds();
       }
 
-      table.appendChild(tbody);
-      container.appendChild(table);
-    }
-
-    document.getElementById('giftRoundForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const name = document.getElementById('giftRoundName').value;
-      await fetch(`/api/families/${familyId}/gift-rounds`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name })
-      });
-      document.getElementById('giftRoundName').value = '';
-      loadGiftRounds();
-    });
-
-    loadGiftRounds();
-  </script>
+      init();
+    </script>
 </body>
 </html>

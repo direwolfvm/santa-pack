@@ -30,10 +30,22 @@
   </form>
 
   <script>
-    async function fetchFamilies() {
-      const res = await fetch('/api/families');
-      return res.json();
-    }
+      async function fetchFamilies() {
+        const { data: sessionData } = await supabaseClient.auth.getSession();
+        if (!sessionData.session) return [];
+        const userId = sessionData.session.user.id;
+        const { data, error } = await supabaseClient
+          .from('person')
+          .select('family!person_family_fkey(id, name)')
+          .eq('user_profile', userId);
+        if (error) {
+          console.error(error);
+          return [];
+        }
+        const families = (data || []).map(p => p.family)
+          .filter((f, i, arr) => arr.findIndex(x => x.id === f.id) === i);
+        return families;
+      }
 
     async function loadFamilies() {
       const families = await fetchFamilies();
