@@ -1,11 +1,29 @@
 async function initNav() {
   const navContainer = document.getElementById('nav');
   if (!navContainer) return;
+  navContainer.innerHTML = '';
+
+  const navLeft = document.createElement('div');
+  navLeft.className = 'nav-left';
+  const navRight = document.createElement('div');
+  navRight.className = 'nav-right';
+  navContainer.appendChild(navLeft);
+  navContainer.appendChild(navRight);
 
   const { data } = await supabaseClient.auth.getSession();
   if (!data.session) {
     window.location.href = 'login.html';
     return;
+  }
+
+  let isAdmin = false;
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('role')
+    .eq('id', data.session.user.id)
+    .maybeSingle();
+  if (profile && profile.role === 'admin') {
+    isAdmin = true;
   }
 
   const { data: person } = await supabaseClient
@@ -31,7 +49,7 @@ async function initNav() {
   homeBtn.addEventListener('click', () => {
     window.location.href = 'index.html';
   });
-  navContainer.appendChild(homeBtn);
+  navLeft.appendChild(homeBtn);
 
   if (familyId) {
     const giftBtn = document.createElement('button');
@@ -39,7 +57,7 @@ async function initNav() {
     giftBtn.addEventListener('click', () => {
       window.location.href = `giftRounds.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName || '')}`;
     });
-    navContainer.appendChild(giftBtn);
+    navLeft.appendChild(giftBtn);
   }
 
   if (familyId && personId) {
@@ -48,7 +66,7 @@ async function initNav() {
     personBtn.addEventListener('click', () => {
       window.location.href = `person.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName || '')}&personId=${personId}&personName=${encodeURIComponent(personName || '')}&stage=${encodeURIComponent(stage || '')}&giftRoundId=${giftRoundId || ''}`;
     });
-    navContainer.appendChild(personBtn);
+    navLeft.appendChild(personBtn);
   }
 
   const profileBtn = document.createElement('button');
@@ -56,7 +74,16 @@ async function initNav() {
   profileBtn.addEventListener('click', () => {
     window.location.href = 'profile.html';
   });
-  navContainer.appendChild(profileBtn);
+  navRight.appendChild(profileBtn);
+
+  if (isAdmin) {
+    const adminBtn = document.createElement('button');
+    adminBtn.textContent = 'Management Console';
+    adminBtn.addEventListener('click', () => {
+      window.location.href = 'admin.html';
+    });
+    navRight.appendChild(adminBtn);
+  }
 
   const signOutBtn = document.createElement('button');
   signOutBtn.textContent = 'Sign Out';
@@ -64,7 +91,10 @@ async function initNav() {
     await supabaseClient.auth.signOut();
     window.location.href = 'login.html';
   });
-  navContainer.appendChild(signOutBtn);
+  navRight.appendChild(signOutBtn);
+
+  const footer = document.createElement('footer');
+  document.body.appendChild(footer);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
