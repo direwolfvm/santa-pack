@@ -4,10 +4,11 @@ cm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNDUzMTAsImV4cCI6MjA2NzgyMTMxMH0.QURkxMU1XcS7TfO1
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function authFetch(url, options = {}) {
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  if (!session) {
+  const { data, error } = await supabaseClient.auth.getSession();
+  const session = data?.session;
+  if (error || !session) {
     window.location.href = 'login.html';
-    throw new Error('No active session');
+    throw new Error(error?.message || 'No active session');
   }
   const headers = options.headers ? { ...options.headers } : {};
   headers['Authorization'] = `Bearer ${session.access_token}`;
@@ -20,10 +21,11 @@ async function authFetch(url, options = {}) {
 }
 
 async function requireSession() {
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  if (!session) {
+  const { data, error } = await supabaseClient.auth.getSession();
+  const session = data?.session;
+  if (error || !session) {
     window.location.href = 'login.html';
-    throw new Error('No active session');
+    throw new Error(error?.message || 'No active session');
   }
   return session;
 }
