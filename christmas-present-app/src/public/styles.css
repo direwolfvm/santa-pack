@@ -1,58 +1,15 @@
 body {
   margin: 0;
-  padding: 1rem;
   font-family: Arial, sans-serif;
-  color: #060;
+  color: #333;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
   min-height: 100vh;
   background-color: #e6f5ff;
-  background-image:
-    radial-gradient(circle, rgba(255,255,255,0.8) 1px, rgba(255,255,255,0) 1px),
-    linear-gradient(to bottom, rgba(255,255,255,0.9) 0%, rgba(230,245,255,0.9) 70%, rgba(255,255,255,0.9) 100%);
-  background-size: 40px 40px, auto;
-  border: 40px solid transparent;
-  border-image: repeating-linear-gradient(45deg, #c00 0, #c00 10px, #fff 10px, #fff 20px, #0a0 20px, #0a0 30px, #fff 30px, #fff 40px) 40;
-  position: relative;
-}
-
-html::before,
-html::after,
-body::before,
-body::after {
-  position: fixed;
-  font-size: 2.5rem;
-  pointer-events: none;
-}
-
-body::before {
-  content: '🔔';
-  top: 10px;
-  left: 10px;
-}
-
-body::after {
-  content: '🌿';
-  top: 10px;
-  right: 10px;
-}
-
-html::before {
-  content: '🌿';
-  bottom: 10px;
-  left: 10px;
-}
-
-html::after {
-  content: '🔔';
-  bottom: 10px;
-  right: 10px;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  color: #060;
+  color: #333;
 }
 
 label {
@@ -64,8 +21,6 @@ label {
 input, button {
   margin-top: 0.25rem;
   display: block;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 button {
@@ -90,18 +45,17 @@ table {
   margin-top: 1rem;
   margin-left: auto;
   margin-right: auto;
-  border: 5px solid transparent;
-  border-image: repeating-linear-gradient(45deg, #0a0 0, #060 10px, #0a0 20px) 5;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 th, td {
-  border: 1px solid #060;
+  border: 1px solid #ccc;
   padding: 0.5rem 1rem;
 }
 
 th {
-  background-color: #e0ffe0;
+  background-color: #f5f5f5;
 }
 
 .hidden {
@@ -110,6 +64,43 @@ th {
 
 .table-btn {
   width: 100%;
+}
+
+#nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #fff;
+  padding: 0.5rem 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-left,
+.nav-right {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.nav-btn {
+  background: none;
+  color: #6200ee;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.nav-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+footer {
+  margin-top: auto;
+  padding: 1rem;
 }
 
 #snow-container {
