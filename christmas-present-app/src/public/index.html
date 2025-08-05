@@ -40,7 +40,7 @@
         const userId = sessionData.session.user.id;
         const { data, error } = await supabaseClient
           .from('person')
-          .select('family(id, name)')
+          .select('family!person_family_fkey(id, name)')
           .eq('user_profile', userId);
         if (error) {
           console.error(error);
