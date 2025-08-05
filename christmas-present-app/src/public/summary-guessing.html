@@ -26,54 +26,86 @@
   <p id="allDoneMsg" class="hidden">All guesses recorded! Ready to mark round complete.</p>
   <button id="completeBtn" class="hidden">Mark Round Complete</button>
 
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const familyId = params.get('familyId');
-    const familyName = params.get('familyName');
-    const giftRoundId = params.get('giftRoundId');
-    document.getElementById('title').textContent = `Guessing Summary for ${familyName}`;
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const familyId = params.get('familyId');
+      const familyName = params.get('familyName');
+      const giftRoundId = params.get('giftRoundId');
+      document.getElementById('title').textContent = `Guessing Summary for ${familyName}`;
 
-    async function loadSummary() {
-      const res = await fetch(`/api/families/${familyId}/people`);
-      const people = await res.json();
-      const body = document.getElementById('summaryBody');
-      body.innerHTML = '';
-      let allGuessed = true;
-
-      for (const person of people) {
-        const presRes = await fetch(`/api/presents?receiver=${person.id}&giftRoundId=${giftRoundId}`);
-        const presents = await presRes.json();
-        const relevant = presents.filter(p => String(p.giver) !== String(person.id));
-        const guessed = relevant.filter(p => p.receiver_guess !== null).length;
-        const row = document.createElement('tr');
-        row.innerHTML = `<td>${person.name}</td><td>${guessed} / ${relevant.length}</td>`;
-        body.appendChild(row);
-        if (guessed < relevant.length) {
-          allGuessed = false;
+      async function init() {
+        const { data: sessionData } = await supabaseClient.auth.getSession();
+        if (!sessionData.session) {
+          window.location.href = 'login.html';
+          return;
         }
+        const userId = sessionData.session.user.id;
+        const [{ data: membership }, { data: profile }] = await Promise.all([
+          supabaseClient
+            .from('person')
+            .select('id')
+            .eq('family', familyId)
+            .eq('user_profile', userId)
+            .maybeSingle(),
+          supabaseClient
+            .from('profiles')
+            .select('role')
+            .eq('id', userId)
+            .maybeSingle()
+        ]);
+        if (!membership) {
+          window.location.href = 'index.html';
+          return;
+        }
+        const isAdmin = profile && profile.role === 'admin';
+        const token = sessionData.session.access_token;
+
+        async function loadSummary() {
+          const res = await fetch(`/api/families/${familyId}/people`);
+          const people = await res.json();
+          const body = document.getElementById('summaryBody');
+          body.innerHTML = '';
+          let allGuessed = true;
+
+          for (const person of people) {
+            const presRes = await fetch(`/api/presents?receiver=${person.id}&giftRoundId=${giftRoundId}`);
+            const presents = await presRes.json();
+            const relevant = presents.filter(p => String(p.giver) !== String(person.id));
+            const guessed = relevant.filter(p => p.receiver_guess !== null).length;
+            const row = document.createElement('tr');
+            row.innerHTML = `<td>${person.name}</td><td>${guessed} / ${relevant.length}</td>`;
+            body.appendChild(row);
+            if (guessed < relevant.length) {
+              allGuessed = false;
+            }
+          }
+
+          const doneMsg = document.getElementById('allDoneMsg');
+          const completeBtn = document.getElementById('completeBtn');
+          if (allGuessed && isAdmin) {
+            doneMsg.classList.remove('hidden');
+            completeBtn.classList.remove('hidden');
+          } else {
+            doneMsg.classList.add('hidden');
+            completeBtn.classList.add('hidden');
+          }
+        }
+
+        if (isAdmin) {
+          document.getElementById('completeBtn').addEventListener('click', async () => {
+            await fetch(`/api/families/gift-rounds/${giftRoundId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ stage: 'complete' })
+            });
+            loadSummary();
+          });
+        }
+
+        loadSummary();
       }
 
-      const doneMsg = document.getElementById('allDoneMsg');
-      const completeBtn = document.getElementById('completeBtn');
-      if (allGuessed) {
-        doneMsg.classList.remove('hidden');
-        completeBtn.classList.remove('hidden');
-      } else {
-        doneMsg.classList.add('hidden');
-        completeBtn.classList.add('hidden');
-      }
-    }
-
-    document.getElementById('completeBtn').addEventListener('click', async () => {
-      await fetch(`/api/families/gift-rounds/${giftRoundId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stage: 'complete' })
-      });
-      loadSummary();
-    });
-
-    loadSummary();
-  </script>
+      init();
+    </script>
 </body>
 </html>

@@ -29,185 +29,206 @@
     </thead>
     <tbody id="presentsBody"></tbody>
   </table>
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const familyId = params.get('familyId');
-    const giftRoundId = params.get('giftRoundId');
-    const personId = params.get('personId');
-    const personName = params.get('personName');
-    document.getElementById('title').textContent = `Guesses for ${personName}`;
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const familyId = params.get('familyId');
+      const giftRoundId = params.get('giftRoundId');
+      const personId = params.get('personId');
+      const personName = params.get('personName');
+      document.getElementById('title').textContent = `Guesses for ${personName}`;
 
-    let otherPeople = [];
-
-    async function loadPeople() {
-      const res = await fetch(`/api/families/${familyId}/people`);
-      const people = await res.json();
-      otherPeople = people.filter(p => String(p.id) !== String(personId));
-      loadPresents(otherPeople);
-    }
-
-    async function loadPresents(others) {
-      const res = await fetch(`/api/presents?receiver=${personId}&giftRoundId=${giftRoundId}`);
-      const presents = await res.json();
-      const tableBody = document.getElementById('presentsBody');
-      tableBody.innerHTML = '';
-      const filtered = presents.filter(p => String(p.giver) !== String(personId));
-      filtered.forEach(p => {
-        const row = document.createElement('tr');
-        row.dataset.giver = p.giver;
-        row.dataset.id = p.id;
-        row.dataset.revealed = p.revealed ? 'true' : 'false';
-
-        const cloakedCell = document.createElement('td');
-        cloakedCell.textContent = p.cloaked_name || '';
-        row.appendChild(cloakedCell);
-
-        const nameCell = document.createElement('td');
-        nameCell.textContent = p.name || '';
-        nameCell.classList.add('hidden', 'name');
-        row.appendChild(nameCell);
-
-        const descCell = document.createElement('td');
-        descCell.textContent = p.description || '';
-        descCell.classList.add('hidden', 'desc');
-        row.appendChild(descCell);
-
-        const giverCell = document.createElement('td');
-        const giverName = others.find(o => String(o.id) === String(p.giver));
-        giverCell.textContent = giverName ? giverName.name : '';
-        giverCell.classList.add('hidden', 'giver');
-        row.appendChild(giverCell);
-
-        const guessCell = document.createElement('td');
-        const guessSpan = document.createElement('span');
-        guessSpan.classList.add('display', 'guess-display');
-        const guessed = others.find(o => String(o.id) === String(p.receiver_guess));
-        guessSpan.textContent = guessed ? guessed.name : '';
-        const select = document.createElement('select');
-        select.classList.add('edit-field');
-        select.style.display = 'none';
-        const blank = document.createElement('option');
-        blank.value = '';
-        blank.textContent = '--Select--';
-        select.appendChild(blank);
-        others.forEach(o => {
-          const opt = document.createElement('option');
-          opt.value = o.id;
-          opt.textContent = o.name;
-          select.appendChild(opt);
-        });
-        if (p.receiver_guess) {
-          select.value = p.receiver_guess;
+      async function init() {
+        const { data: sessionData } = await supabaseClient.auth.getSession();
+        if (!sessionData.session) {
+          window.location.href = 'login.html';
+          return;
         }
-        guessCell.appendChild(guessSpan);
-        guessCell.appendChild(select);
-        row.appendChild(guessCell);
+        const userId = sessionData.session.user.id;
+        const { data: person } = await supabaseClient
+          .from('person')
+          .select('id')
+          .eq('family', familyId)
+          .eq('user_profile', userId)
+          .maybeSingle();
+        if (!person || String(person.id) !== String(personId)) {
+          window.location.href = 'index.html';
+          return;
+        }
 
-        const resultCell = document.createElement('td');
-        resultCell.classList.add('result');
-        row.appendChild(resultCell);
+        let otherPeople = [];
 
-        const actionCell = document.createElement('td');
-        const editBtn = document.createElement('button');
-        editBtn.textContent = 'Edit';
-        editBtn.classList.add('edit-btn');
-        const saveBtn = document.createElement('button');
-        saveBtn.textContent = 'Save';
-        saveBtn.classList.add('save-btn');
-        saveBtn.dataset.id = p.id;
-        saveBtn.style.display = 'none';
-        actionCell.appendChild(editBtn);
-        actionCell.appendChild(saveBtn);
+        async function loadPeople() {
+          const res = await fetch(`/api/families/${familyId}/people`);
+          const people = await res.json();
+          otherPeople = people.filter(p => String(p.id) !== String(personId));
+          loadPresents(otherPeople);
+        }
 
-        const revealBtn = document.createElement('button');
-        revealBtn.textContent = 'Reveal';
-        revealBtn.classList.add('reveal-btn');
-        revealBtn.addEventListener('click', async () => {
-          nameCell.classList.remove('hidden');
-          descCell.classList.remove('hidden');
-          giverCell.classList.remove('hidden');
-          resultCell.textContent = select.value && String(select.value) === String(p.giver) ? 'Correct' : 'Incorrect';
-          revealBtn.disabled = true;
-          await fetch(`/api/presents/${p.id}`, {
+        async function loadPresents(others) {
+          const res = await fetch(`/api/presents?receiver=${personId}&giftRoundId=${giftRoundId}`);
+          const presents = await res.json();
+          const tableBody = document.getElementById('presentsBody');
+          tableBody.innerHTML = '';
+          const filtered = presents.filter(p => String(p.giver) !== String(personId));
+          filtered.forEach(p => {
+            const row = document.createElement('tr');
+            row.dataset.giver = p.giver;
+            row.dataset.id = p.id;
+            row.dataset.revealed = p.revealed ? 'true' : 'false';
+
+            const cloakedCell = document.createElement('td');
+            cloakedCell.textContent = p.cloaked_name || '';
+            row.appendChild(cloakedCell);
+
+            const nameCell = document.createElement('td');
+            nameCell.textContent = p.name || '';
+            nameCell.classList.add('hidden', 'name');
+            row.appendChild(nameCell);
+
+            const descCell = document.createElement('td');
+            descCell.textContent = p.description || '';
+            descCell.classList.add('hidden', 'desc');
+            row.appendChild(descCell);
+
+            const giverCell = document.createElement('td');
+            const giverName = others.find(o => String(o.id) === String(p.giver));
+            giverCell.textContent = giverName ? giverName.name : '';
+            giverCell.classList.add('hidden', 'giver');
+            row.appendChild(giverCell);
+
+            const guessCell = document.createElement('td');
+            const guessSpan = document.createElement('span');
+            guessSpan.classList.add('display', 'guess-display');
+            const guessed = others.find(o => String(o.id) === String(p.receiver_guess));
+            guessSpan.textContent = guessed ? guessed.name : '';
+            const select = document.createElement('select');
+            select.classList.add('edit-field');
+            select.style.display = 'none';
+            const blank = document.createElement('option');
+            blank.value = '';
+            blank.textContent = '--Select--';
+            select.appendChild(blank);
+            others.forEach(o => {
+              const opt = document.createElement('option');
+              opt.value = o.id;
+              opt.textContent = o.name;
+              select.appendChild(opt);
+            });
+            if (p.receiver_guess) {
+              select.value = p.receiver_guess;
+            }
+            guessCell.appendChild(guessSpan);
+            guessCell.appendChild(select);
+            row.appendChild(guessCell);
+
+            const resultCell = document.createElement('td');
+            resultCell.classList.add('result');
+            row.appendChild(resultCell);
+
+            const actionCell = document.createElement('td');
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Edit';
+            editBtn.classList.add('edit-btn');
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = 'Save';
+            saveBtn.classList.add('save-btn');
+            saveBtn.dataset.id = p.id;
+            saveBtn.style.display = 'none';
+            actionCell.appendChild(editBtn);
+            actionCell.appendChild(saveBtn);
+
+            const revealBtn = document.createElement('button');
+            revealBtn.textContent = 'Reveal';
+            revealBtn.classList.add('reveal-btn');
+            revealBtn.addEventListener('click', async () => {
+              nameCell.classList.remove('hidden');
+              descCell.classList.remove('hidden');
+              giverCell.classList.remove('hidden');
+              resultCell.textContent = select.value && String(select.value) === String(p.giver) ? 'Correct' : 'Incorrect';
+              revealBtn.disabled = true;
+              await fetch(`/api/presents/${p.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ revealed: true })
+              });
+            });
+            actionCell.appendChild(revealBtn);
+            row.appendChild(actionCell);
+
+            if (p.revealed) {
+              nameCell.classList.remove('hidden');
+              descCell.classList.remove('hidden');
+              giverCell.classList.remove('hidden');
+              resultCell.textContent = select.value && String(select.value) === String(p.giver) ? 'Correct' : 'Incorrect';
+              revealBtn.disabled = true;
+            }
+
+            tableBody.appendChild(row);
+          });
+        }
+
+        document.getElementById('presentsBody').addEventListener('click', async (e) => {
+          const row = e.target.closest('tr');
+          if (!row) return;
+
+          if (e.target.classList.contains('edit-btn')) {
+            row.querySelector('.guess-display').style.display = 'none';
+            row.querySelector('select').style.display = 'inline';
+            row.querySelector('.edit-btn').style.display = 'none';
+            row.querySelector('.save-btn').style.display = 'inline';
+            return;
+          }
+
+          if (!e.target.classList.contains('save-btn')) return;
+
+          const id = e.target.dataset.id;
+          const select = row.querySelector('select');
+          const guess = select.value || null;
+          await fetch(`/api/presents/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ revealed: true })
+            body: JSON.stringify({ receiverGuess: guess })
           });
+
+          const name = otherPeople.find(o => String(o.id) === String(guess));
+          row.querySelector('.guess-display').textContent = name ? name.name : '';
+
+          row.querySelector('select').style.display = 'none';
+          row.querySelector('.guess-display').style.display = 'inline';
+          row.querySelector('.save-btn').style.display = 'none';
+          row.querySelector('.edit-btn').style.display = 'inline';
+
+          if (row.dataset.revealed === 'true') {
+            const resultCell = row.querySelector('.result');
+            resultCell.textContent = guess && String(guess) === String(row.dataset.giver) ? 'Correct' : 'Incorrect';
+          }
         });
-        actionCell.appendChild(revealBtn);
-        row.appendChild(actionCell);
 
-        if (p.revealed) {
-          nameCell.classList.remove('hidden');
-          descCell.classList.remove('hidden');
-          giverCell.classList.remove('hidden');
-          resultCell.textContent = select.value && String(select.value) === String(p.giver) ? 'Correct' : 'Incorrect';
-          revealBtn.disabled = true;
-        }
-
-        tableBody.appendChild(row);
-      });
-    }
-
-    document.getElementById('presentsBody').addEventListener('click', async (e) => {
-      const row = e.target.closest('tr');
-      if (!row) return;
-
-      if (e.target.classList.contains('edit-btn')) {
-        row.querySelector('.guess-display').style.display = 'none';
-        row.querySelector('select').style.display = 'inline';
-        row.querySelector('.edit-btn').style.display = 'none';
-        row.querySelector('.save-btn').style.display = 'inline';
-        return;
-      }
-
-      if (!e.target.classList.contains('save-btn')) return;
-
-      const id = e.target.dataset.id;
-      const select = row.querySelector('select');
-      const guess = select.value || null;
-      await fetch(`/api/presents/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ receiverGuess: guess })
-      });
-
-      const name = otherPeople.find(o => String(o.id) === String(guess));
-      row.querySelector('.guess-display').textContent = name ? name.name : '';
-
-      row.querySelector('select').style.display = 'none';
-      row.querySelector('.guess-display').style.display = 'inline';
-      row.querySelector('.save-btn').style.display = 'none';
-      row.querySelector('.edit-btn').style.display = 'inline';
-
-      if (row.dataset.revealed === 'true') {
-        const resultCell = row.querySelector('.result');
-        resultCell.textContent = guess && String(guess) === String(row.dataset.giver) ? 'Correct' : 'Incorrect';
-      }
-    });
-
-    document.getElementById('revealAll').addEventListener('click', async () => {
-      const rows = document.querySelectorAll('#presentsBody tr');
-      for (const row of rows) {
-        row.querySelectorAll('.name, .desc, .giver').forEach(el => el.classList.remove('hidden'));
-        const select = row.querySelector('select');
-        const giver = row.dataset.giver;
-        const result = row.querySelector('.result');
-        if (select && result) {
-          result.textContent = select.value && String(select.value) === String(giver) ? 'Correct' : 'Incorrect';
-        }
-        const revealBtn = row.querySelector('.reveal-btn');
-        if (revealBtn) revealBtn.disabled = true;
-        const id = row.dataset.id;
-        await fetch(`/api/presents/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ revealed: true })
+        document.getElementById('revealAll').addEventListener('click', async () => {
+          const rows = document.querySelectorAll('#presentsBody tr');
+          for (const row of rows) {
+            row.querySelectorAll('.name, .desc, .giver').forEach(el => el.classList.remove('hidden'));
+            const select = row.querySelector('select');
+            const giver = row.dataset.giver;
+            const result = row.querySelector('.result');
+            if (select && result) {
+              result.textContent = select.value && String(select.value) === String(giver) ? 'Correct' : 'Incorrect';
+            }
+            const revealBtn = row.querySelector('.reveal-btn');
+            if (revealBtn) revealBtn.disabled = true;
+            const id = row.dataset.id;
+            await fetch(`/api/presents/${id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ revealed: true })
+            });
+          }
         });
-      }
-    });
 
-    loadPeople();
-  </script>
+        loadPeople();
+      }
+
+      init();
+    </script>
 </body>
 </html>

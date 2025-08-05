@@ -27,142 +27,163 @@
     <tbody id="presentsTableBody"></tbody>
   </table>
 
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const familyId = params.get('familyId');
-    const giftRoundId = params.get('giftRoundId');
-    const giverId = params.get('personId');
-    const giverName = params.get('personName');
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const familyId = params.get('familyId');
+      const giftRoundId = params.get('giftRoundId');
+      const giverId = params.get('personId');
+      const giverName = params.get('personName');
 
-    document.getElementById('title').textContent = `Presents from ${giverName}`;
+      document.getElementById('title').textContent = `Presents from ${giverName}`;
 
-      async function loadPeople() {
-        const res = await fetch(`/api/families/${familyId}/people`);
-        let people = await res.json();
-        people = people.filter(p => p.id !== parseInt(giverId, 10));
-        loadPresents(people);
-      }
-
-      async function loadPresents(people) {
-        const body = document.getElementById('presentsTableBody');
-        body.innerHTML = '';
-        for (const p of people) {
-          const res = await fetch(`/api/presents?giver=${giverId}&receiver=${p.id}&giftRoundId=${giftRoundId}`);
-          const data = await res.json();
-          const present = data[0] || {};
-
-          const row = document.createElement('tr');
-
-          const recvTd = document.createElement('td');
-          recvTd.textContent = p.name;
-          row.appendChild(recvTd);
-
-          const nameTd = document.createElement('td');
-          const nameSpan = document.createElement('span');
-          nameSpan.textContent = present.name || '';
-          nameSpan.classList.add('display', 'name-display');
-          const nameInput = document.createElement('input');
-          nameInput.dataset.field = 'name';
-          nameInput.value = present.name || '';
-          nameInput.classList.add('edit-field');
-          nameInput.style.display = 'none';
-          nameTd.appendChild(nameSpan);
-          nameTd.appendChild(nameInput);
-          row.appendChild(nameTd);
-
-          const descTd = document.createElement('td');
-          const descSpan = document.createElement('span');
-          descSpan.textContent = present.description || '';
-          descSpan.classList.add('display', 'desc-display');
-          const descInput = document.createElement('input');
-          descInput.dataset.field = 'description';
-          descInput.value = present.description || '';
-          descInput.classList.add('edit-field');
-          descInput.style.display = 'none';
-          descTd.appendChild(descSpan);
-          descTd.appendChild(descInput);
-          row.appendChild(descTd);
-
-          const cloakedTd = document.createElement('td');
-          const cloakedSpan = document.createElement('span');
-          cloakedSpan.textContent = present.cloaked_name || '';
-          cloakedSpan.classList.add('display', 'cloaked-display');
-          const cloakedInput = document.createElement('input');
-          cloakedInput.dataset.field = 'cloaked';
-          cloakedInput.value = present.cloaked_name || '';
-          cloakedInput.classList.add('edit-field');
-          cloakedInput.style.display = 'none';
-          cloakedTd.appendChild(cloakedSpan);
-          cloakedTd.appendChild(cloakedInput);
-          row.appendChild(cloakedTd);
-
-          const actionTd = document.createElement('td');
-          const editBtn = document.createElement('button');
-          editBtn.textContent = 'Edit';
-          editBtn.classList.add('edit-btn');
-          const saveBtn = document.createElement('button');
-          saveBtn.textContent = 'Save';
-          saveBtn.classList.add('save-btn');
-          saveBtn.dataset.id = present.id || '';
-          saveBtn.dataset.receiver = p.id;
-          saveBtn.style.display = 'none';
-          actionTd.appendChild(editBtn);
-          actionTd.appendChild(saveBtn);
-          row.appendChild(actionTd);
-
-          body.appendChild(row);
+      async function init() {
+        const { data: sessionData } = await supabaseClient.auth.getSession();
+        if (!sessionData.session) {
+          window.location.href = 'login.html';
+          return;
         }
-      }
-
-    document.getElementById('presentsTableBody').addEventListener('click', async (e) => {
-      const row = e.target.closest('tr');
-      if (!row) return;
-
-      if (e.target.classList.contains('edit-btn')) {
-        row.querySelectorAll('.display').forEach(el => el.style.display = 'none');
-        row.querySelectorAll('.edit-field').forEach(el => el.style.display = 'inline');
-        row.querySelector('.edit-btn').style.display = 'none';
-        row.querySelector('.save-btn').style.display = 'inline';
-        return;
-      }
-
-      if (!e.target.classList.contains('save-btn')) return;
-
-      const receiverId = e.target.dataset.receiver;
-      const id = e.target.dataset.id;
-      const name = row.querySelector('input[data-field="name"]').value;
-      const description = row.querySelector('input[data-field="description"]').value;
-      const cloaked = row.querySelector('input[data-field="cloaked"]').value;
-
-      if (id) {
-        await fetch(`/api/presents/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, description, cloakedName: cloaked })
-        });
-      } else {
-        const res = await fetch('/api/presents', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, description, cloakedName: cloaked, giver: giverId, receiver: receiverId, giftRoundId })
-        });
-        const created = await res.json();
-        if (created && created[0]) {
-          e.target.dataset.id = created[0].id;
+        const userId = sessionData.session.user.id;
+        const { data: person } = await supabaseClient
+          .from('person')
+          .select('id')
+          .eq('family', familyId)
+          .eq('user_profile', userId)
+          .maybeSingle();
+        if (!person || String(person.id) !== String(giverId)) {
+          window.location.href = 'index.html';
+          return;
         }
+
+        async function loadPeople() {
+          const res = await fetch(`/api/families/${familyId}/people`);
+          let people = await res.json();
+          people = people.filter(p => p.id !== parseInt(giverId, 10));
+          loadPresents(people);
+        }
+
+        async function loadPresents(people) {
+          const body = document.getElementById('presentsTableBody');
+          body.innerHTML = '';
+          for (const p of people) {
+            const res = await fetch(`/api/presents?giver=${giverId}&receiver=${p.id}&giftRoundId=${giftRoundId}`);
+            const data = await res.json();
+            const present = data[0] || {};
+
+            const row = document.createElement('tr');
+
+            const recvTd = document.createElement('td');
+            recvTd.textContent = p.name;
+            row.appendChild(recvTd);
+
+            const nameTd = document.createElement('td');
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = present.name || '';
+            nameSpan.classList.add('display', 'name-display');
+            const nameInput = document.createElement('input');
+            nameInput.dataset.field = 'name';
+            nameInput.value = present.name || '';
+            nameInput.classList.add('edit-field');
+            nameInput.style.display = 'none';
+            nameTd.appendChild(nameSpan);
+            nameTd.appendChild(nameInput);
+            row.appendChild(nameTd);
+
+            const descTd = document.createElement('td');
+            const descSpan = document.createElement('span');
+            descSpan.textContent = present.description || '';
+            descSpan.classList.add('display', 'desc-display');
+            const descInput = document.createElement('input');
+            descInput.dataset.field = 'description';
+            descInput.value = present.description || '';
+            descInput.classList.add('edit-field');
+            descInput.style.display = 'none';
+            descTd.appendChild(descSpan);
+            descTd.appendChild(descInput);
+            row.appendChild(descTd);
+
+            const cloakedTd = document.createElement('td');
+            const cloakedSpan = document.createElement('span');
+            cloakedSpan.textContent = present.cloaked_name || '';
+            cloakedSpan.classList.add('display', 'cloaked-display');
+            const cloakedInput = document.createElement('input');
+            cloakedInput.dataset.field = 'cloaked';
+            cloakedInput.value = present.cloaked_name || '';
+            cloakedInput.classList.add('edit-field');
+            cloakedInput.style.display = 'none';
+            cloakedTd.appendChild(cloakedSpan);
+            cloakedTd.appendChild(cloakedInput);
+            row.appendChild(cloakedTd);
+
+            const actionTd = document.createElement('td');
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Edit';
+            editBtn.classList.add('edit-btn');
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = 'Save';
+            saveBtn.classList.add('save-btn');
+            saveBtn.dataset.id = present.id || '';
+            saveBtn.dataset.receiver = p.id;
+            saveBtn.style.display = 'none';
+            actionTd.appendChild(editBtn);
+            actionTd.appendChild(saveBtn);
+            row.appendChild(actionTd);
+
+            body.appendChild(row);
+          }
+        }
+
+        document.getElementById('presentsTableBody').addEventListener('click', async (e) => {
+          const row = e.target.closest('tr');
+          if (!row) return;
+
+          if (e.target.classList.contains('edit-btn')) {
+            row.querySelectorAll('.display').forEach(el => el.style.display = 'none');
+            row.querySelectorAll('.edit-field').forEach(el => el.style.display = 'inline');
+            row.querySelector('.edit-btn').style.display = 'none';
+            row.querySelector('.save-btn').style.display = 'inline';
+            return;
+          }
+
+          if (!e.target.classList.contains('save-btn')) return;
+
+          const receiverId = e.target.dataset.receiver;
+          const id = e.target.dataset.id;
+          const name = row.querySelector('input[data-field="name"]').value;
+          const description = row.querySelector('input[data-field="description"]').value;
+          const cloaked = row.querySelector('input[data-field="cloaked"]').value;
+
+          if (id) {
+            await fetch(`/api/presents/${id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name, description, cloakedName: cloaked })
+            });
+          } else {
+            const res = await fetch('/api/presents', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name, description, cloakedName: cloaked, giver: giverId, receiver: receiverId, giftRoundId })
+            });
+            const created = await res.json();
+            if (created && created[0]) {
+              e.target.dataset.id = created[0].id;
+            }
+          }
+
+          row.querySelector('.name-display').textContent = name;
+          row.querySelector('.desc-display').textContent = description;
+          row.querySelector('.cloaked-display').textContent = cloaked;
+
+          row.querySelectorAll('.edit-field').forEach(el => el.style.display = 'none');
+          row.querySelectorAll('.display').forEach(el => el.style.display = 'inline');
+          row.querySelector('.save-btn').style.display = 'none';
+          row.querySelector('.edit-btn').style.display = 'inline';
+        });
+
+        loadPeople();
       }
 
-      row.querySelector('.name-display').textContent = name;
-      row.querySelector('.desc-display').textContent = description;
-      row.querySelector('.cloaked-display').textContent = cloaked;
-
-      row.querySelectorAll('.edit-field').forEach(el => el.style.display = 'none');
-      row.querySelectorAll('.display').forEach(el => el.style.display = 'inline');
-      row.querySelector('.save-btn').style.display = 'none';
-      row.querySelector('.edit-btn').style.display = 'inline';
-    });
-
-    loadPeople();
-  </script>
+      init();
+    </script>
 </body>
 </html>
