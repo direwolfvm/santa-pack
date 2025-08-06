@@ -112,7 +112,8 @@ th {
 }
 
 .table-btn {
-  width: 100%;
+  width: auto;
+  display: inline-block;
 }
 
 #snow-container {
