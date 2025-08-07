@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Manage Family</title>
+  <link rel="icon" href="santa-hat.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabaseClient.js"></script>
+  <script src="nav.js"></script>
+  <script src="snow.js"></script>
+</head>
+<body>
+  <div id="nav"></div>
+  <h1 id="title">Manage Family</h1>
+  <h2>Pending Requests</h2>
+  <div id="pendingContainer">Loading...</div>
+  <h2>Family Members</h2>
+  <div id="membersContainer">Loading...</div>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const params = new URLSearchParams(window.location.search);
+      const familyId = params.get('familyId');
+      const familyName = params.get('familyName');
+      if (familyName) {
+        document.getElementById('title').textContent = `Manage Family: ${familyName}`;
+      }
+      async function loadData() {
+        const pending = await fetch(`/api/families/${familyId}/pending-people`).then(r => r.json());
+        const pendingContainer = document.getElementById('pendingContainer');
+        pendingContainer.innerHTML = '';
+        if (pending.length === 0) {
+          pendingContainer.textContent = 'No pending requests.';
+        } else {
+          const table = document.createElement('table');
+          const tbody = document.createElement('tbody');
+          pending.forEach(p => {
+            const row = document.createElement('tr');
+            const nameTd = document.createElement('td');
+            nameTd.textContent = p.name;
+            row.appendChild(nameTd);
+            const actionTd = document.createElement('td');
+            const approveBtn = document.createElement('button');
+            approveBtn.textContent = 'Approve';
+            approveBtn.addEventListener('click', async () => {
+              await fetch(`/api/families/people/${p.id}/approve`, { method: 'POST' });
+              loadData();
+            });
+            actionTd.appendChild(approveBtn);
+            row.appendChild(actionTd);
+            tbody.appendChild(row);
+          });
+          table.appendChild(tbody);
+          pendingContainer.appendChild(table);
+        }
+
+        const members = await fetch(`/api/families/${familyId}/people`).then(r => r.json());
+        const membersContainer = document.getElementById('membersContainer');
+        membersContainer.innerHTML = '';
+        if (members.length === 0) {
+          membersContainer.textContent = 'No members.';
+        } else {
+          const table = document.createElement('table');
+          const tbody = document.createElement('tbody');
+          members.forEach(m => {
+            const row = document.createElement('tr');
+            const nameTd = document.createElement('td');
+            nameTd.textContent = m.name;
+            row.appendChild(nameTd);
+            const actionTd = document.createElement('td');
+            const removeBtn = document.createElement('button');
+            removeBtn.textContent = 'Remove';
+            removeBtn.addEventListener('click', async () => {
+              await fetch(`/api/families/people/${m.id}/remove`, { method: 'POST' });
+              loadData();
+            });
+            actionTd.appendChild(removeBtn);
+            row.appendChild(actionTd);
+            tbody.appendChild(row);
+          });
+          table.appendChild(tbody);
+          membersContainer.appendChild(table);
+        }
+      }
+      loadData();
+    });
+  </script>
+</body>
+</html>

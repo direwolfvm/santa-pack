@@ -17,21 +17,25 @@ async function initNav() {
   }
 
   let isAdmin = false;
+  let isManager = false;
   const { data: profile } = await supabaseClient
     .from('profiles')
     .select('role')
     .eq('id', data.session.user.id)
     .maybeSingle();
-  if (profile && profile.role === 'admin') {
-    isAdmin = true;
+  if (profile) {
+    if (profile.role === 'admin') {
+      isAdmin = true;
+    } else if (profile.role === 'manager') {
+      isManager = true;
+    }
   }
 
-  const { data: person } = await supabaseClient
+  const { data: persons } = await supabaseClient
     .from('person')
-    .select('id')
-    .eq('user_profile', data.session.user.id)
-    .maybeSingle();
-  if (!person) {
+    .select('id, family, family_pending')
+    .eq('user_profile', data.session.user.id);
+  if (!persons || persons.length === 0 || !persons.some(p => p.family || p.family_pending)) {
     window.location.href = 'createPerson.html';
     return;
   }
@@ -83,6 +87,31 @@ async function initNav() {
       window.location.href = 'admin.html';
     });
     navRight.appendChild(adminBtn);
+  }
+
+  let canManageFamily = false;
+  if (familyId) {
+    if (isAdmin) {
+      canManageFamily = true;
+    } else if (isManager) {
+      const { data: mgrPerson } = await supabaseClient
+        .from('person')
+        .select('id')
+        .eq('user_profile', data.session.user.id)
+        .eq('family', familyId)
+        .maybeSingle();
+      if (mgrPerson) {
+        canManageFamily = true;
+      }
+    }
+  }
+  if (canManageFamily) {
+    const manageBtn = document.createElement('button');
+    manageBtn.textContent = 'Manage Family';
+    manageBtn.addEventListener('click', () => {
+      window.location.href = `manageFamily.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName || '')}`;
+    });
+    navRight.appendChild(manageBtn);
   }
 
   const signOutBtn = document.createElement('button');

@@ -5,14 +5,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
   const user = data.session.user;
-  const { data: existingPerson } = await supabaseClient
+  const { data: existingPersons } = await supabaseClient
     .from('person')
-    .select('id')
-    .eq('user_profile', user.id)
-    .maybeSingle();
-  if (existingPerson) {
-    window.location.href = 'index.html';
-    return;
+    .select('id, family, family_pending')
+    .eq('user_profile', user.id);
+  let existingPerson = null;
+  if (existingPersons && existingPersons.length > 0) {
+    existingPerson = existingPersons[0];
+    if (existingPersons.some(p => p.family || p.family_pending)) {
+      window.location.href = 'index.html';
+      return;
+    }
   }
 
   const families = await fetch('/api/families').then(r => r.json());
@@ -28,14 +31,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     e.preventDefault();
     const name = document.getElementById('personName').value;
     const familyId = select.value;
-    const res = await fetch(`/api/families/${familyId}/people`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, user_profile: user.id })
-    });
-    const created = (await res.json())[0];
-    if (created) {
+    if (existingPerson) {
+      await supabaseClient
+        .from('person')
+        .update({ name, family_pending: familyId })
+        .eq('id', existingPerson.id);
+      alert('Request to join family submitted.');
       window.location.href = 'index.html';
+    } else {
+      const res = await fetch(`/api/families/${familyId}/people`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, user_profile: user.id })
+      });
+      const created = (await res.json())[0];
+      if (created) {
+        alert('Request to join family submitted.');
+        window.location.href = 'index.html';
+      }
     }
   });
 });
