@@ -27,6 +27,9 @@ router.put('/gift-rounds/:giftRoundId', giftRoundsController.updateGiftRoundStag
 // List people for a family
 router.get('/:familyId/people', peopleController.getPeople.bind(peopleController));
 
+// List pending people for a family
+router.get('/:familyId/pending-people', peopleController.getPendingPeople.bind(peopleController));
+
 // Create a person for a family
 router.post('/:familyId/people', peopleController.createPerson.bind(peopleController));
 
@@ -34,5 +37,9 @@ router.post('/:familyId/people', peopleController.createPerson.bind(peopleContro
 router.delete('/:familyId', familiesController.deleteFamily.bind(familiesController));
 router.delete('/gift-rounds/:giftRoundId', giftRoundsController.deleteGiftRound.bind(giftRoundsController));
 router.delete('/people/:personId', peopleController.deletePerson.bind(peopleController));
+
+// Approval routes
+router.post('/people/:personId/approve', peopleController.approvePerson.bind(peopleController));
+router.post('/people/:personId/remove', peopleController.removePerson.bind(peopleController));
 
 module.exports = router;
