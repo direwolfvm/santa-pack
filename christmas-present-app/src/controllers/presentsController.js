@@ -35,7 +35,38 @@ class PresentsController {
     }
 
     async updatePresent(req, res) {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        const {
+            data: { user },
+            error: userError,
+        } = await this.supabase.auth.getUser(token);
+        if (userError || !user) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        const { data: profile } = await this.supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle();
+
         const { id } = req.params;
+        if (profile?.role !== 'admin') {
+            const { data: present } = await this.supabase
+                .from('present')
+                .select('giver')
+                .eq('id', id)
+                .maybeSingle();
+
+            if (!present || present.giver !== user.id) {
+                return res.status(403).json({ error: 'Forbidden' });
+            }
+        }
+
         const { name, description, cloakedName, receiverGuess, revealed } = req.body;
         const updates = { name, description };
         if (cloakedName !== undefined) updates.cloaked_name = cloakedName;
@@ -60,7 +91,38 @@ class PresentsController {
     }
 
     async deletePresent(req, res) {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        const {
+            data: { user },
+            error: userError,
+        } = await this.supabase.auth.getUser(token);
+        if (userError || !user) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        const { data: profile } = await this.supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle();
+
         const { id } = req.params;
+        if (profile?.role !== 'admin') {
+            const { data: present } = await this.supabase
+                .from('present')
+                .select('giver')
+                .eq('id', id)
+                .maybeSingle();
+
+            if (!present || present.giver !== user.id) {
+                return res.status(403).json({ error: 'Forbidden' });
+            }
+        }
+
         const { data, error } = await this.supabase
             .from('present')
             .delete()
