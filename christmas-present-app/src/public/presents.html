@@ -45,15 +45,23 @@
           return;
         }
         const userId = sessionData.session.user.id;
-        const { data: person } = await supabaseClient
-          .from('person')
-          .select('id')
-          .eq('family', familyId)
-          .eq('user_profile', userId)
+        const { data: profile } = await supabaseClient
+          .from('profiles')
+          .select('role')
+          .eq('id', userId)
           .maybeSingle();
-        if (!person || String(person.id) !== String(giverId)) {
-          window.location.href = 'index.html';
-          return;
+        const isAdmin = profile && profile.role === 'admin';
+        if (!isAdmin) {
+          const { data: person } = await supabaseClient
+            .from('person')
+            .select('id')
+            .eq('family', familyId)
+            .eq('user_profile', userId)
+            .maybeSingle();
+          if (!person || String(person.id) !== String(giverId)) {
+            window.location.href = 'index.html';
+            return;
+          }
         }
 
         async function loadPeople() {
