@@ -58,11 +58,14 @@ class PresentsController {
         if (profile?.role !== 'admin') {
             const { data: present } = await this.supabase
                 .from('present')
-                .select('giver')
+                .select('giver, receiver')
                 .eq('id', id)
                 .maybeSingle();
 
-            if (!present || present.giver !== user.id) {
+            if (
+                !present ||
+                (present.giver !== user.id && present.receiver !== user.id)
+            ) {
                 return res.status(403).json({ error: 'Forbidden' });
             }
         }
