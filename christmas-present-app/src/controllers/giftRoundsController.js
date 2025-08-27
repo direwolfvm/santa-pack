@@ -4,6 +4,28 @@ class GiftRoundsController {
     }
 
     async createGiftRound(req, res) {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        const {
+            data: { user },
+            error: userError,
+        } = await this.supabase.auth.getUser(token);
+        if (userError || !user) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        const { data: profile } = await this.supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle();
+        if (!profile || (profile.role !== 'manager' && profile.role !== 'admin')) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
         const { familyId } = req.params;
         const { name } = req.body;
         const { data, error } = await this.supabase

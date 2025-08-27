@@ -15,12 +15,14 @@
   <div id="nav"></div>
   <h1 id="title">Gift Rounds</h1>
   <div id="giftRoundsContainer">Loading...</div>
-  <h2>Create New Gift Round</h2>
-  <form id="giftRoundForm">
-    <label for="giftRoundName">Gift Round Name:</label>
-    <input type="text" id="giftRoundName" required />
-    <button type="submit">Create Gift Round</button>
-  </form>
+  <div id="createGiftRoundSection">
+    <h2>Create New Gift Round</h2>
+    <form id="giftRoundForm">
+      <label for="giftRoundName">Gift Round Name:</label>
+      <input type="text" id="giftRoundName" required />
+      <button type="submit">Create Gift Round</button>
+    </form>
+  </div>
     <script>
       const params = new URLSearchParams(window.location.search);
       const familyId = params.get('familyId');
@@ -51,8 +53,13 @@
           window.location.href = 'index.html';
           return;
         }
-        const isAdmin = profile && profile.role === 'admin';
+        const role = profile ? profile.role : null;
+        const isAdmin = role === 'admin';
+        const canCreate = role === 'manager' || role === 'admin';
         const token = sessionData.session.access_token;
+        if (!canCreate) {
+          document.getElementById('createGiftRoundSection').style.display = 'none';
+        }
 
         async function loadGiftRounds() {
           const res = await fetch(`/api/families/${familyId}/gift-rounds`);
@@ -186,7 +193,7 @@
           const name = document.getElementById('giftRoundName').value;
           await fetch(`/api/families/${familyId}/gift-rounds`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ name })
           });
           document.getElementById('giftRoundName').value = '';

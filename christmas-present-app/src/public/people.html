@@ -17,12 +17,14 @@
   <p id="instructions">Select your name below or add yourself.</p>
   <div id="peopleContainer">Loading...</div>
 
-  <h2>Add Person</h2>
-  <form id="personForm">
-    <label for="personName">Name:</label>
-    <input type="text" id="personName" required />
-    <button type="submit">Add Person</button>
-  </form>
+  <div id="addPersonSection">
+    <h2>Add Person</h2>
+    <form id="personForm">
+      <label for="personSelect">Person:</label>
+      <select id="personSelect" required></select>
+      <button type="submit">Add Person</button>
+    </form>
+  </div>
     <script>
       const params = new URLSearchParams(window.location.search);
       const familyId = params.get('familyId');
@@ -37,15 +39,44 @@
           return;
         }
         const userId = sessionData.session.user.id;
-        const { data: membership } = await supabaseClient
-          .from('person')
-          .select('id')
-          .eq('family', familyId)
-          .eq('user_profile', userId)
-          .maybeSingle();
+        const token = sessionData.session.access_token;
+        const [{ data: membership }, { data: profile }] = await Promise.all([
+          supabaseClient
+            .from('person')
+            .select('id')
+            .eq('family', familyId)
+            .eq('user_profile', userId)
+            .maybeSingle(),
+          supabaseClient
+            .from('profiles')
+            .select('role')
+            .eq('id', userId)
+            .maybeSingle()
+        ]);
         if (!membership) {
           window.location.href = 'index.html';
           return;
+        }
+        const role = profile ? profile.role : null;
+        const canManage = role === 'manager' || role === 'admin';
+        if (!canManage) {
+          document.getElementById('addPersonSection').style.display = 'none';
+        }
+
+        async function loadAvailablePersons() {
+          const { data: candidates } = await supabaseClient
+            .from('person')
+            .select('user_profile, name')
+            .is('family', null)
+            .is('family_pending', null);
+          const select = document.getElementById('personSelect');
+          select.innerHTML = '';
+          (candidates || []).forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.user_profile;
+            opt.textContent = c.name;
+            select.appendChild(opt);
+          });
         }
 
         async function setTitle() {
@@ -102,17 +133,20 @@
           container.appendChild(table);
         }
 
-        document.getElementById('personForm').addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const name = document.getElementById('personName').value;
-          await fetch(`/api/families/${familyId}/people`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name })
+        if (canManage) {
+          await loadAvailablePersons();
+          document.getElementById('personForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user_profile = document.getElementById('personSelect').value;
+            await fetch(`/api/families/${familyId}/people`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ user_profile })
+            });
+            await loadPeople();
+            await loadAvailablePersons();
           });
-          document.getElementById('personName').value = '';
-          loadPeople();
-        });
+        }
 
         setTitle();
         loadPeople();
