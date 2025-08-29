@@ -17,7 +17,7 @@
   <p>Create your first family to begin planning gift exchanges.</p>
   <h2>Families</h2>
   <div id="familiesContainer">Loading...</div>
-  <div id="joinFamilySection"><a href="createPerson.html">Request to Join an Existing Family</a></div>
+  <div id="joinFamilySection"><button id="joinFamilyBtn">Request to Join an Existing Family</button></div>
 
   <div id="createFamilySection">
     <h2>Create New Family</h2>
@@ -132,6 +132,10 @@
           loadFamilies();
         });
       }
+
+      document.getElementById('joinFamilyBtn').addEventListener('click', () => {
+        window.location.href = 'createPerson.html';
+      });
 
       loadFamilies();
     })();

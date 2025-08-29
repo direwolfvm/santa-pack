@@ -43,6 +43,9 @@
   <h2>People</h2>
   <div id="peopleTable">Loading...</div>
 
+  <h2>Pending Family Requests</h2>
+  <div id="pendingRequestsTable">Loading...</div>
+
   <h2>Presents</h2>
   <div id="presentsTable">Loading...</div>
 
@@ -159,6 +162,44 @@ async function loadData() {
   });
   peopleTable.appendChild(pBody);
   peopleCont.appendChild(peopleTable);
+
+  const pending = [];
+  for (const f of families) {
+    const pend = await fetch(`/api/families/${f.id}/pending-people`).then(r => r.json());
+    pend.forEach(p => pending.push({ ...p, familyName: f.name }));
+  }
+  const pendCont = document.getElementById('pendingRequestsTable');
+  pendCont.innerHTML = '';
+  if (pending.length === 0) {
+    pendCont.textContent = 'No pending requests.';
+  } else {
+    const pendTable = document.createElement('table');
+    const pendHead = document.createElement('tr');
+    ['ID', 'Name', 'Family', 'Approve'].forEach(t => {
+      const th = document.createElement('th');
+      th.textContent = t;
+      pendHead.appendChild(th);
+    });
+    const pendThead = document.createElement('thead');
+    pendThead.appendChild(pendHead);
+    pendTable.appendChild(pendThead);
+    const pendBody = document.createElement('tbody');
+    pending.forEach(p => {
+      const row = document.createElement('tr');
+      row.innerHTML = `<td>${p.id}</td><td>${p.name}</td><td>${p.familyName}</td>`;
+      const approveTd = document.createElement('td');
+      const aBtn = document.createElement('button');
+      aBtn.textContent = 'Approve';
+      aBtn.addEventListener('click', () => {
+        fetch(`/api/families/people/${p.id}/approve`, { method: 'POST' }).then(loadData);
+      });
+      approveTd.appendChild(aBtn);
+      row.appendChild(approveTd);
+      pendBody.appendChild(row);
+    });
+    pendTable.appendChild(pendBody);
+    pendCont.appendChild(pendTable);
+  }
 
   // Presents
   const presents = await fetch('/api/presents').then(r=>r.json());
