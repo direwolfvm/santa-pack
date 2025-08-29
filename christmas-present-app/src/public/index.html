@@ -24,12 +24,14 @@
   <h2>People</h2>
   <div id="peopleContainer">Loading...</div>
 
-  <h2>Create New Family</h2>
-  <form id="familyForm">
-    <label for="familyName">Family Name:</label>
-    <input type="text" id="familyName" required />
-    <button type="submit">Create Family</button>
-  </form>
+  <div id="createFamilySection">
+    <h2>Create New Family</h2>
+    <form id="familyForm">
+      <label for="familyName">Family Name:</label>
+      <input type="text" id="familyName" required />
+      <button type="submit">Create Family</button>
+    </form>
+  </div>
 
   <script>
       async function fetchFamilies() {
@@ -199,19 +201,35 @@
 
 
     (async () => {
-      document.getElementById('familyForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = document.getElementById('familyName').value;
-        await fetch('/api/families', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name })
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      if (!sessionData.session) {
+        window.location.href = 'login.html';
+        return;
+      }
+      const token = sessionData.session.access_token;
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('role')
+        .eq('id', sessionData.session.user.id)
+        .maybeSingle();
+      const isAdmin = profile && profile.role === 'admin';
+      if (!isAdmin) {
+        document.getElementById('createFamilySection').style.display = 'none';
+      } else {
+        document.getElementById('familyForm').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const name = document.getElementById('familyName').value;
+          await fetch('/api/families', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ name })
+          });
+          document.getElementById('familyName').value = '';
+          loadFamilies();
+          loadGiftRounds();
+          loadPeople();
         });
-        document.getElementById('familyName').value = '';
-        loadFamilies();
-        loadGiftRounds();
-        loadPeople();
-      });
+      }
 
       loadFamilies();
       loadGiftRounds();

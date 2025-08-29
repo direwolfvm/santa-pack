@@ -4,17 +4,57 @@ class PeopleController {
     }
 
     async createPerson(req, res) {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        const {
+            data: { user },
+            error: userError,
+        } = await this.supabase.auth.getUser(token);
+        if (userError || !user) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        const { data: profile } = await this.supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle();
+        if (!profile || (profile.role !== 'manager' && profile.role !== 'admin')) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
         const { familyId } = req.params;
-        const { name, user_profile } = req.body;
+        const { user_profile } = req.body;
+        if (!user_profile) {
+            return res.status(400).json({ error: 'user_profile is required' });
+        }
+
+        const { data: existing, error: exError } = await this.supabase
+            .from('person')
+            .select('id')
+            .eq('user_profile', user_profile)
+            .maybeSingle();
+
+        if (exError) {
+            return res.status(400).json({ error: exError.message });
+        }
+        if (!existing) {
+            return res.status(400).json({ error: 'Person not found' });
+        }
+
         const { data, error } = await this.supabase
             .from('person')
-            .insert([{ name, family_pending: familyId, user_profile }])
+            .update({ family: familyId, family_pending: null })
+            .eq('user_profile', user_profile)
             .select();
 
         if (error) {
             return res.status(400).json({ error: error.message });
         }
-        res.status(201).json(data);
+        res.status(200).json(data);
     }
 
     async getPendingPeople(req, res) {
