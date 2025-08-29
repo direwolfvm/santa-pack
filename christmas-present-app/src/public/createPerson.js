@@ -5,50 +5,82 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
   const user = data.session.user;
-  const { data: existingPersons } = await supabaseClient
+
+  const { data: personData } = await supabaseClient
     .from('person')
-    .select('id, family, family_pending')
+    .select('id, name, family, family_pending')
     .eq('user_profile', user.id);
-  let existingPerson = null;
-  if (existingPersons && existingPersons.length > 0) {
-    existingPerson = existingPersons[0];
-    if (existingPersons.some(p => p.family || p.family_pending)) {
-      window.location.href = 'index.html';
-      return;
-    }
+
+  let existingPerson = personData && personData.length > 0 ? personData[0] : null;
+
+  if (existingPerson && (existingPerson.family || existingPerson.family_pending)) {
+    window.location.href = 'index.html';
+    return;
+  }
+
+  if (existingPerson && existingPerson.name) {
+    document.getElementById('personName').value = existingPerson.name;
   }
 
   const families = await fetch('/api/families').then(r => r.json());
-  const select = document.getElementById('familySelect');
-  families.forEach(f => {
-    const opt = document.createElement('option');
-    opt.value = f.id;
-    opt.textContent = f.name;
-    select.appendChild(opt);
-  });
+  const container = document.getElementById('familiesTable');
+  container.innerHTML = '';
 
-  document.getElementById('personForm').addEventListener('submit', async e => {
-    e.preventDefault();
-    const name = document.getElementById('personName').value;
-    const familyId = select.value;
-    if (existingPerson) {
-      await supabaseClient
-        .from('person')
-        .update({ name, family_pending: familyId })
-        .eq('id', existingPerson.id);
-      alert('Request to join family submitted.');
-      window.location.href = 'index.html';
+  const table = document.createElement('table');
+  const thead = document.createElement('thead');
+  const headRow = document.createElement('tr');
+  ['Family', 'Status/Action'].forEach(t => {
+    const th = document.createElement('th');
+    th.textContent = t;
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+  const tbody = document.createElement('tbody');
+
+  families.forEach(f => {
+    const row = document.createElement('tr');
+    const nameTd = document.createElement('td');
+    nameTd.textContent = f.name;
+    row.appendChild(nameTd);
+
+    const actionTd = document.createElement('td');
+    if (existingPerson && existingPerson.family === f.id) {
+      actionTd.textContent = 'Member';
+    } else if (existingPerson && existingPerson.family_pending === f.id) {
+      actionTd.textContent = 'Pending Approval';
     } else {
-      const res = await fetch(`/api/families/${familyId}/people`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, user_profile: user.id })
-      });
-      const created = (await res.json())[0];
-      if (created) {
+      const btn = document.createElement('button');
+      btn.textContent = 'Request to Join';
+      btn.addEventListener('click', async () => {
+        const name = document.getElementById('personName').value.trim();
+        if (!name) {
+          alert('Please enter your name.');
+          return;
+        }
+        if (existingPerson) {
+          await supabaseClient
+            .from('person')
+            .update({ name, family_pending: f.id })
+            .eq('id', existingPerson.id);
+        } else {
+          const { data: inserted } = await supabaseClient
+            .from('person')
+            .insert({ name, user_profile: user.id, family_pending: f.id })
+            .select()
+            .single();
+          existingPerson = inserted;
+        }
         alert('Request to join family submitted.');
         window.location.href = 'index.html';
-      }
+      });
+      actionTd.appendChild(btn);
     }
+    row.appendChild(actionTd);
+    tbody.appendChild(row);
   });
+
+  table.appendChild(tbody);
+  container.appendChild(table);
 });
+
