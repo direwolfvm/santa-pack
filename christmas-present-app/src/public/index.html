@@ -17,12 +17,7 @@
   <p>Create your first family to begin planning gift exchanges.</p>
   <h2>Families</h2>
   <div id="familiesContainer">Loading...</div>
-
-  <h2>Gift Rounds</h2>
-  <div id="giftRoundsContainer">Loading...</div>
-
-  <h2>People</h2>
-  <div id="peopleContainer">Loading...</div>
+  <div id="joinFamilySection"><a href="createPerson.html">Request to Join an Existing Family</a></div>
 
   <div id="createFamilySection">
     <h2>Create New Family</h2>
@@ -65,7 +60,7 @@
       const table = document.createElement('table');
       const thead = document.createElement('thead');
       const headRow = document.createElement('tr');
-      ['Family', 'Gift Rounds'].forEach(text => {
+      ['Family', 'Gift Rounds', 'People', 'Family Page'].forEach(text => {
         const th = document.createElement('th');
         th.textContent = text;
         headRow.appendChild(th);
@@ -74,16 +69,27 @@
       table.appendChild(thead);
       const tbody = document.createElement('tbody');
 
-      families.forEach(f => {
+      for (const f of families) {
         const row = document.createElement('tr');
+
         const nameTd = document.createElement('td');
         nameTd.textContent = f.name;
         row.appendChild(nameTd);
 
+        const roundsTd = document.createElement('td');
+        const rounds = await fetch(`/api/families/${f.id}/gift-rounds`).then(r => r.json());
+        roundsTd.textContent = rounds.length ? rounds.map(r => r.name).join(', ') : 'None';
+        row.appendChild(roundsTd);
+
+        const peopleTd = document.createElement('td');
+        const people = await fetch(`/api/families/${f.id}/people`).then(r => r.json());
+        peopleTd.textContent = people.length ? people.map(p => p.name).join(', ') : 'None';
+        row.appendChild(peopleTd);
+
         const actionTd = document.createElement('td');
         const btn = document.createElement('button');
         btn.classList.add('table-btn');
-        btn.textContent = 'View Rounds';
+        btn.textContent = 'View Family';
         btn.addEventListener('click', () => {
           window.location.href = `giftRounds.html?familyId=${f.id}&familyName=${encodeURIComponent(f.name)}`;
         });
@@ -91,108 +97,6 @@
         row.appendChild(actionTd);
 
         tbody.appendChild(row);
-      });
-
-      table.appendChild(tbody);
-      container.appendChild(table);
-    }
-
-    async function loadGiftRounds() {
-      const families = await fetchFamilies();
-      const container = document.getElementById('giftRoundsContainer');
-      container.innerHTML = '';
-
-      if (families.length === 0) {
-        container.textContent = 'No families yet.';
-        return;
-      }
-
-      const table = document.createElement('table');
-      const thead = document.createElement('thead');
-      const headRow = document.createElement('tr');
-      ['Family', 'Round', 'Stage'].forEach(text => {
-        const th = document.createElement('th');
-        th.textContent = text;
-        headRow.appendChild(th);
-      });
-      thead.appendChild(headRow);
-      table.appendChild(thead);
-      const tbody = document.createElement('tbody');
-
-      for (const f of families) {
-        const res = await fetch(`/api/families/${f.id}/gift-rounds`);
-        const rounds = await res.json();
-        rounds.forEach(r => {
-          const row = document.createElement('tr');
-          const famTd = document.createElement('td');
-          famTd.textContent = f.name;
-          row.appendChild(famTd);
-
-        const roundTd = document.createElement('td');
-        const btn = document.createElement('button');
-        btn.classList.add('table-btn');
-        btn.textContent = r.name;
-        btn.addEventListener('click', () => {
-          window.location.href = `people.html?familyId=${f.id}&familyName=${encodeURIComponent(f.name)}&giftRoundId=${r.id}&stage=${encodeURIComponent(r.stage)}`;
-        });
-        roundTd.appendChild(btn);
-        row.appendChild(roundTd);
-
-          const stageTd = document.createElement('td');
-          stageTd.textContent = r.stage;
-          row.appendChild(stageTd);
-
-          tbody.appendChild(row);
-        });
-      }
-
-      table.appendChild(tbody);
-      container.appendChild(table);
-    }
-
-    async function loadPeople() {
-      const families = await fetchFamilies();
-      const container = document.getElementById('peopleContainer');
-      container.innerHTML = '';
-
-      if (families.length === 0) {
-        container.textContent = 'No families yet.';
-        return;
-      }
-
-      const table = document.createElement('table');
-      const thead = document.createElement('thead');
-      const headRow = document.createElement('tr');
-      ['Family', 'Person'].forEach(text => {
-        const th = document.createElement('th');
-        th.textContent = text;
-        headRow.appendChild(th);
-      });
-      thead.appendChild(headRow);
-      table.appendChild(thead);
-      const tbody = document.createElement('tbody');
-
-      for (const f of families) {
-        const res = await fetch(`/api/families/${f.id}/people`);
-        const people = await res.json();
-        people.forEach(p => {
-          const row = document.createElement('tr');
-          const famTd = document.createElement('td');
-          famTd.textContent = f.name;
-          row.appendChild(famTd);
-
-          const personTd = document.createElement('td');
-          const btn = document.createElement('button');
-          btn.classList.add('table-btn');
-          btn.textContent = p.name;
-          btn.addEventListener('click', () => {
-            window.location.href = `person.html?familyId=${f.id}&familyName=${encodeURIComponent(f.name)}&personId=${p.id}&personName=${encodeURIComponent(p.name)}`;
-          });
-          personTd.appendChild(btn);
-          row.appendChild(personTd);
-
-          tbody.appendChild(row);
-        });
       }
 
       table.appendChild(tbody);
@@ -226,14 +130,10 @@
           });
           document.getElementById('familyName').value = '';
           loadFamilies();
-          loadGiftRounds();
-          loadPeople();
         });
       }
 
       loadFamilies();
-      loadGiftRounds();
-      loadPeople();
     })();
   </script>
 </body>
