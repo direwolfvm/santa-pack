@@ -30,20 +30,13 @@
           return;
         }
         const userId = sessionData.session.user.id;
-        const [{ data: membership }, { data: profile }] = await Promise.all([
-          supabaseClient
-            .from('person')
-            .select('id')
-            .eq('family', familyId)
-            .eq('user_profile', userId)
-            .maybeSingle(),
-          supabaseClient
-            .from('profiles')
-            .select('role')
-            .eq('id', userId)
-            .maybeSingle()
-        ]);
-        if (!membership || !profile || profile.role !== 'admin') {
+        const { data: membership } = await supabaseClient
+          .from('person')
+          .select('id')
+          .eq('family', familyId)
+          .eq('user_profile', userId)
+          .maybeSingle();
+        if (!membership) {
           window.location.href = 'index.html';
           return;
         }

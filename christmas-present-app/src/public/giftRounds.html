@@ -99,7 +99,7 @@
 
             const readyTd = document.createElement('td');
             let ready = false;
-            if (isAdmin && (r.stage === 'giving' || r.stage === 'guessing')) {
+            if (r.stage === 'giving' || r.stage === 'guessing') {
               const presRes = await fetch(`/api/presents?giftRoundId=${r.id}`);
               const presents = await presRes.json();
               if (r.stage === 'giving') {
@@ -115,7 +115,7 @@
                 });
               }
             }
-            readyTd.textContent = ready && isAdmin ? '✔️' : '';
+            readyTd.textContent = ready ? '✔️' : '';
             row.appendChild(readyTd);
 
             const actionsTd = document.createElement('td');
@@ -168,18 +168,16 @@
             row.appendChild(actionsTd);
 
             const summaryTd = document.createElement('td');
-            if (isAdmin) {
-              const summaryBtn = document.createElement('button');
-              summaryBtn.textContent = 'View Summary';
-              summaryBtn.addEventListener('click', () => {
-                let page;
-                if (r.stage === 'giving') page = 'summary-giving.html';
-                else if (r.stage === 'guessing') page = 'summary-guessing.html';
-                else page = 'summary-complete.html';
-                window.location.href = `${page}?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${r.id}&stage=${encodeURIComponent(r.stage)}`;
-              });
-              summaryTd.appendChild(summaryBtn);
-            }
+            const summaryBtn = document.createElement('button');
+            summaryBtn.textContent = 'View Summary';
+            summaryBtn.addEventListener('click', () => {
+              let page;
+              if (r.stage === 'giving') page = 'summary-giving.html';
+              else if (r.stage === 'guessing') page = 'summary-guessing.html';
+              else page = 'summary-complete.html';
+              window.location.href = `${page}?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${r.id}&stage=${encodeURIComponent(r.stage)}`;
+            });
+            summaryTd.appendChild(summaryBtn);
             row.appendChild(summaryTd);
             tbody.appendChild(row);
           }
