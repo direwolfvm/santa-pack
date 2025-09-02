@@ -149,6 +149,23 @@ th {
   animation-iteration-count: infinite;
 }
 
+/* Center the login page content */
+body.login-page {
+  align-items: center;
+}
+
+body.login-page h1,
+body.login-page h2 {
+  text-align: center;
+}
+
+body.login-page form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 300px;
+}
+
 @keyframes fall {
   to {
     transform: translateY(100vh);
