@@ -45,9 +45,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     row.appendChild(nameTd);
 
     const actionTd = document.createElement('td');
-    if (existingPerson && existingPerson.family === f.id) {
+    const isMember =
+      existingPerson && String(existingPerson.family) === String(f.id);
+    const isPending =
+      existingPerson && String(existingPerson.family_pending) === String(f.id);
+
+    if (isMember) {
       actionTd.textContent = 'Member';
-    } else if (existingPerson && existingPerson.family_pending === f.id) {
+    } else if (isPending) {
       actionTd.textContent = 'Pending Approval';
     } else {
       const btn = document.createElement('button');
