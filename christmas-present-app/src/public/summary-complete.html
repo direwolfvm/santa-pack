@@ -61,8 +61,9 @@
         const isAdmin = profile && profile.role === 'admin';
         const token = sessionData.session.access_token;
 
+        const reopenBtn = document.getElementById('reopenBtn');
         if (isAdmin) {
-          document.getElementById('reopenBtn').addEventListener('click', async () => {
+          reopenBtn.addEventListener('click', async () => {
             await fetch(`/api/families/gift-rounds/${giftRoundId}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -71,7 +72,10 @@
             window.location.href = `summary-guessing.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${giftRoundId}&stage=guessing`;
           });
         } else {
-          document.getElementById('reopenBtn').style.display = 'none';
+          reopenBtn.classList.add('inactive-btn');
+          reopenBtn.addEventListener('click', () => {
+            alert("You can't perform this action right now.");
+          });
         }
 
         async function loadData() {

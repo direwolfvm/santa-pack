@@ -39,6 +39,8 @@
         .single();
 
       let currentProfile = profile;
+      let canRequestRole = false;
+      const requestBtn = document.getElementById('requestRoleBtn');
       if (currentProfile) {
         document.getElementById('role').textContent = `Role: ${profile.role}`;
         if (profile.role_pending) {
@@ -46,15 +48,18 @@
           rpEl.textContent = `Pending Role: ${profile.role_pending}`;
           rpEl.style.display = 'block';
         }
-        const requestBtn = document.getElementById('requestRoleBtn');
+        requestBtn.style.display = 'block';
         if (!currentProfile.role_pending) {
           if (currentProfile.role === 'user') {
             requestBtn.textContent = 'Request Manager Role';
-            requestBtn.style.display = 'block';
+            canRequestRole = true;
           } else if (currentProfile.role === 'manager') {
             requestBtn.textContent = 'Request Admin Role';
-            requestBtn.style.display = 'block';
+            canRequestRole = true;
           }
+        }
+        if (!canRequestRole) {
+          requestBtn.classList.add('inactive-btn');
         }
 
         const { data: person } = await supabaseClient
@@ -87,25 +92,31 @@
         document.getElementById('email').textContent = `Email: ${newEmail}`;
       });
 
-      document.getElementById('requestRoleBtn').addEventListener('click', async () => {
-        let desired = 'manager';
-        if (currentProfile && currentProfile.role === 'manager') {
-          desired = 'admin';
-        }
-        const { error } = await supabaseClient
-          .from('profiles')
-          .update({ role_pending: desired })
-          .eq('id', user.id);
-        if (error) {
-          alert(error.message);
-          return;
-        }
-        const rpEl = document.getElementById('rolePending');
-        rpEl.textContent = `Pending Role: ${desired}`;
-        rpEl.style.display = 'block';
-        currentProfile.role_pending = desired;
-        document.getElementById('requestRoleBtn').style.display = 'none';
-      });
+      if (canRequestRole) {
+        requestBtn.addEventListener('click', async () => {
+          let desired = 'manager';
+          if (currentProfile && currentProfile.role === 'manager') {
+            desired = 'admin';
+          }
+          const { error } = await supabaseClient
+            .from('profiles')
+            .update({ role_pending: desired })
+            .eq('id', user.id);
+          if (error) {
+            alert(error.message);
+            return;
+          }
+          const rpEl = document.getElementById('rolePending');
+          rpEl.textContent = `Pending Role: ${desired}`;
+          rpEl.style.display = 'block';
+          currentProfile.role_pending = desired;
+          document.getElementById('requestRoleBtn').style.display = 'none';
+        });
+      } else {
+        requestBtn.addEventListener('click', () => {
+          alert("You can't perform this action right now.");
+        });
+      }
     });
   </script>
 </body>

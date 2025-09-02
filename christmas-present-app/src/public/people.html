@@ -60,7 +60,13 @@
         const role = profile ? profile.role : null;
         const canManage = role === 'manager' || role === 'admin';
         if (!canManage) {
-          document.getElementById('addPersonSection').style.display = 'none';
+          const addBtn = document.querySelector('#personForm button[type="submit"]');
+          addBtn.classList.add('inactive-btn');
+          document.getElementById('personSelect').disabled = true;
+          document.getElementById('personForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert("You can't perform this action right now.");
+          });
         }
 
         async function loadAvailablePersons() {

@@ -57,8 +57,14 @@
         const isAdmin = role === 'admin';
         const canCreate = role === 'manager' || role === 'admin';
         const token = sessionData.session.access_token;
+
         if (!canCreate) {
-          document.getElementById('createGiftRoundSection').style.display = 'none';
+          const createBtn = document.querySelector('#giftRoundForm button[type="submit"]');
+          createBtn.classList.add('inactive-btn');
+          document.getElementById('giftRoundForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert("You can't perform this action right now.");
+          });
         }
 
         async function loadGiftRounds() {
@@ -127,19 +133,20 @@
             });
             actionsTd.appendChild(goBtn);
 
+            const switchBtn = document.createElement('button');
+            let newStage;
+            if (r.stage === 'giving') {
+              switchBtn.textContent = 'Switch to Guessing';
+              newStage = 'guessing';
+            } else if (r.stage === 'guessing') {
+              switchBtn.textContent = 'Switch to Giving';
+              newStage = 'giving';
+            } else {
+              switchBtn.textContent = 'Reopen Guessing';
+              newStage = 'guessing';
+            }
+
             if (isAdmin) {
-              const switchBtn = document.createElement('button');
-              let newStage;
-              if (r.stage === 'giving') {
-                switchBtn.textContent = 'Switch to Guessing';
-                newStage = 'guessing';
-              } else if (r.stage === 'guessing') {
-                switchBtn.textContent = 'Switch to Giving';
-                newStage = 'giving';
-              } else {
-                switchBtn.textContent = 'Reopen Guessing';
-                newStage = 'guessing';
-              }
               switchBtn.addEventListener('click', async () => {
                 await fetch(`/api/families/gift-rounds/${r.id}`, {
                   method: 'PUT',
@@ -148,11 +155,18 @@
                 });
                 loadGiftRounds();
               });
-              actionsTd.appendChild(switchBtn);
+            } else {
+              switchBtn.classList.add('inactive-btn');
+              switchBtn.addEventListener('click', () => {
+                alert("You can't perform this action right now.");
+              });
+            }
+            actionsTd.appendChild(switchBtn);
 
-              if (r.stage === 'guessing' && ready) {
-                const completeBtn = document.createElement('button');
-                completeBtn.textContent = 'Complete';
+            if (r.stage === 'guessing' && ready) {
+              const completeBtn = document.createElement('button');
+              completeBtn.textContent = 'Complete';
+              if (isAdmin) {
                 completeBtn.addEventListener('click', async () => {
                   await fetch(`/api/families/gift-rounds/${r.id}`, {
                     method: 'PUT',
@@ -161,8 +175,13 @@
                   });
                   loadGiftRounds();
                 });
-                actionsTd.appendChild(completeBtn);
+              } else {
+                completeBtn.classList.add('inactive-btn');
+                completeBtn.addEventListener('click', () => {
+                  alert("You can't perform this action right now.");
+                });
               }
+              actionsTd.appendChild(completeBtn);
             }
 
             row.appendChild(actionsTd);
@@ -186,17 +205,19 @@
           container.appendChild(table);
         }
 
-        document.getElementById('giftRoundForm').addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const name = document.getElementById('giftRoundName').value;
-          await fetch(`/api/families/${familyId}/gift-rounds`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ name })
+        if (canCreate) {
+          document.getElementById('giftRoundForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('giftRoundName').value;
+            await fetch(`/api/families/${familyId}/gift-rounds`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ name })
+            });
+            document.getElementById('giftRoundName').value = '';
+            loadGiftRounds();
           });
-          document.getElementById('giftRoundName').value = '';
-          loadGiftRounds();
-        });
+        }
 
         loadGiftRounds();
       }
