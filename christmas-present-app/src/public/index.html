@@ -117,8 +117,13 @@
         .eq('id', sessionData.session.user.id)
         .maybeSingle();
       const isAdmin = profile && profile.role === 'admin';
+      const createBtn = document.querySelector('#familyForm button[type="submit"]');
       if (!isAdmin) {
-        document.getElementById('createFamilySection').style.display = 'none';
+        createBtn.classList.add('inactive-btn');
+        document.getElementById('familyForm').addEventListener('submit', (e) => {
+          e.preventDefault();
+          alert("You can't perform this action right now.");
+        });
       } else {
         document.getElementById('familyForm').addEventListener('submit', async (e) => {
           e.preventDefault();
