@@ -56,6 +56,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       actionTd.textContent = 'Pending Approval';
     } else {
       const btn = document.createElement('button');
+      btn.type = 'button';
       btn.textContent = 'Request to Join';
       btn.addEventListener('click', async () => {
         const name = document.getElementById('personName').value.trim();
@@ -63,19 +64,32 @@ document.addEventListener('DOMContentLoaded', async () => {
           alert('Please enter your name.');
           return;
         }
+
+        let error;
         if (existingPerson) {
-          await supabaseClient
+          const { error: updateError } = await supabaseClient
             .from('person')
             .update({ name, family_pending: f.id })
             .eq('id', existingPerson.id);
+          error = updateError;
         } else {
-          const { data: inserted } = await supabaseClient
+          const { data: inserted, error: insertError } = await supabaseClient
             .from('person')
             .insert({ name, user_profile: user.id, family_pending: f.id })
             .select()
             .single();
-          existingPerson = inserted;
+          error = insertError;
+          if (!insertError) {
+            existingPerson = inserted;
+          }
         }
+
+        if (error) {
+          console.error('Error requesting to join family:', error.message);
+          alert(`Failed to submit request: ${error.message}`);
+          return;
+        }
+
         alert('Request to join family submitted.');
         window.location.href = 'index.html';
       });
