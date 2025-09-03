@@ -72,10 +72,7 @@
             window.location.href = `summary-guessing.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${giftRoundId}&stage=guessing`;
           });
         } else {
-          reopenBtn.classList.add('inactive-btn');
-          reopenBtn.addEventListener('click', () => {
-            alert("You can't perform this action right now.");
-          });
+          reopenBtn.style.display = 'none';
         }
 
         async function loadData() {

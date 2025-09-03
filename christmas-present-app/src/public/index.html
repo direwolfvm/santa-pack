@@ -117,14 +117,8 @@
         .eq('id', sessionData.session.user.id)
         .maybeSingle();
       const isAdmin = profile && profile.role === 'admin';
-      const createBtn = document.querySelector('#familyForm button[type="submit"]');
-      if (!isAdmin) {
-        createBtn.classList.add('inactive-btn');
-        document.getElementById('familyForm').addEventListener('submit', (e) => {
-          e.preventDefault();
-          alert("You can't perform this action right now.");
-        });
-      } else {
+      const createSection = document.getElementById('createFamilySection');
+      if (isAdmin) {
         document.getElementById('familyForm').addEventListener('submit', async (e) => {
           e.preventDefault();
           const name = document.getElementById('familyName').value;
@@ -136,6 +130,8 @@
           document.getElementById('familyName').value = '';
           loadFamilies();
         });
+      } else {
+        createSection.style.display = 'none';
       }
 
       document.getElementById('joinFamilyBtn').addEventListener('click', () => {
