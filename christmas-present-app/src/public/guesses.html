@@ -51,8 +51,9 @@
           .select('role')
           .eq('id', userId)
           .maybeSingle();
-        const isAdmin = profile && profile.role === 'admin';
-        if (!isAdmin) {
+        const role = profile ? profile.role : null;
+        const canManage = role === 'manager' || role === 'admin';
+        if (!canManage) {
           const { data: person } = await supabaseClient
             .from('person')
             .select('id')
