@@ -84,7 +84,7 @@
 
           const doneMsg = document.getElementById('allDoneMsg');
           const completeBtn = document.getElementById('completeBtn');
-          if (allGuessed) {
+          if (allGuessed && isAdmin) {
             doneMsg.classList.remove('hidden');
             completeBtn.classList.remove('hidden');
           } else {
@@ -101,12 +101,6 @@
               body: JSON.stringify({ stage: 'complete' })
             });
             loadSummary();
-          });
-        } else {
-          const cBtn = document.getElementById('completeBtn');
-          cBtn.classList.add('inactive-btn');
-          cBtn.addEventListener('click', () => {
-            alert("You can't perform this action right now.");
           });
         }
 

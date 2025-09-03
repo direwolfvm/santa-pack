@@ -48,7 +48,6 @@
           rpEl.textContent = `Pending Role: ${profile.role_pending}`;
           rpEl.style.display = 'block';
         }
-        requestBtn.style.display = 'block';
         if (!currentProfile.role_pending) {
           if (currentProfile.role === 'user') {
             requestBtn.textContent = 'Request Manager Role';
@@ -58,8 +57,8 @@
             canRequestRole = true;
           }
         }
-        if (!canRequestRole) {
-          requestBtn.classList.add('inactive-btn');
+        if (canRequestRole) {
+          requestBtn.style.display = 'block';
         }
 
         const { data: person } = await supabaseClient
@@ -111,10 +110,6 @@
           rpEl.style.display = 'block';
           currentProfile.role_pending = desired;
           document.getElementById('requestRoleBtn').style.display = 'none';
-        });
-      } else {
-        requestBtn.addEventListener('click', () => {
-          alert("You can't perform this action right now.");
         });
       }
     });

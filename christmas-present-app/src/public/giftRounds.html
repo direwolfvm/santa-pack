@@ -59,12 +59,7 @@
         const token = sessionData.session.access_token;
 
         if (!canCreate) {
-          const createBtn = document.querySelector('#giftRoundForm button[type="submit"]');
-          createBtn.classList.add('inactive-btn');
-          document.getElementById('giftRoundForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            alert("You can't perform this action right now.");
-          });
+          document.getElementById('createGiftRoundSection').style.display = 'none';
         }
 
         async function loadGiftRounds() {
@@ -133,20 +128,19 @@
             });
             actionsTd.appendChild(goBtn);
 
-            const switchBtn = document.createElement('button');
-            let newStage;
-            if (r.stage === 'giving') {
-              switchBtn.textContent = 'Switch to Guessing';
-              newStage = 'guessing';
-            } else if (r.stage === 'guessing') {
-              switchBtn.textContent = 'Switch to Giving';
-              newStage = 'giving';
-            } else {
-              switchBtn.textContent = 'Reopen Guessing';
-              newStage = 'guessing';
-            }
-
             if (isAdmin) {
+              const switchBtn = document.createElement('button');
+              let newStage;
+              if (r.stage === 'giving') {
+                switchBtn.textContent = 'Switch to Guessing';
+                newStage = 'guessing';
+              } else if (r.stage === 'guessing') {
+                switchBtn.textContent = 'Switch to Giving';
+                newStage = 'giving';
+              } else {
+                switchBtn.textContent = 'Reopen Guessing';
+                newStage = 'guessing';
+              }
               switchBtn.addEventListener('click', async () => {
                 await fetch(`/api/families/gift-rounds/${r.id}`, {
                   method: 'PUT',
@@ -155,18 +149,11 @@
                 });
                 loadGiftRounds();
               });
-            } else {
-              switchBtn.classList.add('inactive-btn');
-              switchBtn.addEventListener('click', () => {
-                alert("You can't perform this action right now.");
-              });
-            }
-            actionsTd.appendChild(switchBtn);
+              actionsTd.appendChild(switchBtn);
 
-            if (r.stage === 'guessing' && ready) {
-              const completeBtn = document.createElement('button');
-              completeBtn.textContent = 'Complete';
-              if (isAdmin) {
+              if (r.stage === 'guessing' && ready) {
+                const completeBtn = document.createElement('button');
+                completeBtn.textContent = 'Complete';
                 completeBtn.addEventListener('click', async () => {
                   await fetch(`/api/families/gift-rounds/${r.id}`, {
                     method: 'PUT',
@@ -175,13 +162,8 @@
                   });
                   loadGiftRounds();
                 });
-              } else {
-                completeBtn.classList.add('inactive-btn');
-                completeBtn.addEventListener('click', () => {
-                  alert("You can't perform this action right now.");
-                });
+                actionsTd.appendChild(completeBtn);
               }
-              actionsTd.appendChild(completeBtn);
             }
 
             row.appendChild(actionsTd);
