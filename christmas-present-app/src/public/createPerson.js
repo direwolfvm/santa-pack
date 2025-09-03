@@ -13,7 +13,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let existingPerson = personData && personData.length > 0 ? personData[0] : null;
 
-  if (existingPerson && (existingPerson.family || existingPerson.family_pending)) {
+  // Only redirect if the person already belongs to a family. Pending requests
+  // should still render the page so users can see their status.
+  if (existingPerson && existingPerson.family) {
     window.location.href = 'index.html';
     return;
   }
