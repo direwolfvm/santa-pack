@@ -1,14 +1,8 @@
 async function initNav() {
   const navContainer = document.getElementById('nav');
   if (!navContainer) return;
-  navContainer.innerHTML = '';
 
-  const navLeft = document.createElement('div');
-  navLeft.className = 'nav-left';
-  const navRight = document.createElement('div');
-  navRight.className = 'nav-right';
-  navContainer.appendChild(navLeft);
-  navContainer.appendChild(navRight);
+  navContainer.classList.add('usa-header', 'usa-header--basic', 'site-header');
 
   const { data } = await supabaseClient.auth.getSession();
   if (!data.session) {
@@ -18,11 +12,13 @@ async function initNav() {
 
   let isAdmin = false;
   let isManager = false;
+
   const { data: profile } = await supabaseClient
     .from('profiles')
     .select('role')
     .eq('id', data.session.user.id)
     .maybeSingle();
+
   if (profile) {
     if (profile.role === 'admin') {
       isAdmin = true;
@@ -35,9 +31,84 @@ async function initNav() {
     .from('person')
     .select('id, family, family_pending')
     .eq('user_profile', data.session.user.id);
-  if (!persons || persons.length === 0 || !persons.some(p => p.family || p.family_pending)) {
+
+  if (!persons || persons.length === 0 || !persons.some((p) => p.family || p.family_pending)) {
     window.location.href = 'createPerson.html';
     return;
+  }
+
+  navContainer.innerHTML = '';
+
+  const navWrapper = document.createElement('div');
+  navWrapper.className = 'usa-nav-container site-nav-container';
+  navContainer.appendChild(navWrapper);
+
+  const navbar = document.createElement('div');
+  navbar.className = 'usa-navbar';
+  navWrapper.appendChild(navbar);
+
+  const logo = document.createElement('div');
+  logo.className = 'usa-logo';
+  const logoEm = document.createElement('em');
+  logoEm.className = 'usa-logo__text';
+  const logoLink = document.createElement('a');
+  logoLink.href = 'index.html';
+  logoLink.title = 'Santa Pack home';
+  logoLink.textContent = 'Santa Pack';
+  logoEm.appendChild(logoLink);
+  logo.appendChild(logoEm);
+  navbar.appendChild(logo);
+
+  const navElement = document.createElement('nav');
+  navElement.className = 'usa-nav';
+  navElement.setAttribute('aria-label', 'Primary navigation');
+  navWrapper.appendChild(navElement);
+
+  const primaryList = document.createElement('ul');
+  primaryList.className = 'usa-nav__primary usa-accordion site-nav__primary';
+  navElement.appendChild(primaryList);
+
+  const secondary = document.createElement('div');
+  secondary.className = 'usa-nav__secondary site-nav__secondary';
+  navElement.appendChild(secondary);
+
+  const secondaryList = document.createElement('ul');
+  secondaryList.className = 'usa-nav__secondary-links';
+  secondary.appendChild(secondaryList);
+
+  const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+
+  function addPrimaryLink(label, url) {
+    const li = document.createElement('li');
+    li.className = 'usa-nav__primary-item';
+
+    const link = document.createElement('a');
+    link.className = 'usa-nav__link';
+    link.href = url;
+    const span = document.createElement('span');
+    span.textContent = label;
+    link.appendChild(span);
+
+    const pageName = (url || '').split('?')[0];
+    if (currentPage === pageName) {
+      link.setAttribute('aria-current', 'page');
+    }
+
+    li.appendChild(link);
+    primaryList.appendChild(li);
+  }
+
+  function addSecondaryLink(label, url) {
+    const li = document.createElement('li');
+    li.className = 'usa-nav__secondary-item';
+    const link = document.createElement('a');
+    link.href = url;
+    link.textContent = label;
+    if (currentPage === (url || '').split('?')[0]) {
+      link.setAttribute('aria-current', 'page');
+    }
+    li.appendChild(link);
+    secondaryList.appendChild(li);
   }
 
   const params = new URLSearchParams(window.location.search);
@@ -48,45 +119,22 @@ async function initNav() {
   const personName = params.get('personName');
   const stage = params.get('stage');
 
-  const homeBtn = document.createElement('button');
-  homeBtn.textContent = 'Families';
-  homeBtn.addEventListener('click', () => {
-    window.location.href = 'index.html';
-  });
-  navLeft.appendChild(homeBtn);
+  addPrimaryLink('Families', 'index.html');
 
   if (familyId) {
-    const giftBtn = document.createElement('button');
-    giftBtn.textContent = 'Gift Rounds';
-    giftBtn.addEventListener('click', () => {
-      window.location.href = `giftRounds.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName || '')}`;
-    });
-    navLeft.appendChild(giftBtn);
+    const giftRoundsUrl = `giftRounds.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName || '')}`;
+    addPrimaryLink('Gift Rounds', giftRoundsUrl);
   }
 
   if (familyId && personId) {
-    const personBtn = document.createElement('button');
-    personBtn.textContent = 'Person';
-    personBtn.addEventListener('click', () => {
-      window.location.href = `person.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName || '')}&personId=${personId}&personName=${encodeURIComponent(personName || '')}&stage=${encodeURIComponent(stage || '')}&giftRoundId=${giftRoundId || ''}`;
-    });
-    navLeft.appendChild(personBtn);
+    const personUrl = `person.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName || '')}&personId=${personId}&personName=${encodeURIComponent(personName || '')}&stage=${encodeURIComponent(stage || '')}&giftRoundId=${giftRoundId || ''}`;
+    addPrimaryLink('Person', personUrl);
   }
 
-  const profileBtn = document.createElement('button');
-  profileBtn.textContent = 'Profile';
-  profileBtn.addEventListener('click', () => {
-    window.location.href = 'profile.html';
-  });
-  navRight.appendChild(profileBtn);
+  addSecondaryLink('Profile', 'profile.html');
 
   if (isAdmin) {
-    const adminBtn = document.createElement('button');
-    adminBtn.textContent = 'Management Console';
-    adminBtn.addEventListener('click', () => {
-      window.location.href = 'admin.html';
-    });
-    navRight.appendChild(adminBtn);
+    addSecondaryLink('Management Console', 'admin.html');
   }
 
   let canManageFamily = false;
@@ -105,25 +153,24 @@ async function initNav() {
       }
     }
   }
+
   if (canManageFamily) {
-    const manageBtn = document.createElement('button');
-    manageBtn.textContent = 'Manage Family';
-    manageBtn.addEventListener('click', () => {
-      window.location.href = `manageFamily.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName || '')}`;
-    });
-    navRight.appendChild(manageBtn);
+    const manageUrl = `manageFamily.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName || '')}`;
+    addSecondaryLink('Manage Family', manageUrl);
   }
 
+  const signOutContainer = document.createElement('div');
+  signOutContainer.className = 'site-nav__signout';
   const signOutBtn = document.createElement('button');
+  signOutBtn.type = 'button';
+  signOutBtn.className = 'usa-button usa-button--secondary';
   signOutBtn.textContent = 'Sign Out';
   signOutBtn.addEventListener('click', async () => {
     await supabaseClient.auth.signOut();
     window.location.href = 'login.html';
   });
-  navRight.appendChild(signOutBtn);
-
-  const footer = document.createElement('footer');
-  document.body.appendChild(footer);
+  signOutContainer.appendChild(signOutBtn);
+  secondary.appendChild(signOutContainer);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
