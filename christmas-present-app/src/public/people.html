@@ -8,16 +8,17 @@
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabaseClient.js"></script>
-  <script src="nav.js"></script>
-  <script src="snow.js"></script>
+  <script src="layout.js" defer></script>
+  <script src="nav.js" defer></script>
+  <script src="snow.js" defer></script>
 </head>
 <body>
-  <div id="nav"></div>
+  <header id="nav"></header>
   <h1 id="title">People</h1>
   <p id="instructions">Select your name below or add yourself.</p>
   <div id="peopleContainer">Loading...</div>
 
-  <div id="addPersonSection">
+  <div id="addPersonSection" data-card-footer>
     <h2>Add Person</h2>
     <form id="personForm">
       <label for="personSelect">Person:</label>
