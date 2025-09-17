@@ -100,6 +100,11 @@ a:focus {
   padding: 0;
 }
 
+.site-nav__secondary-item {
+  display: flex;
+  align-items: center;
+}
+
 .site-nav__secondary-links a {
   color: #045d04;
   text-decoration: none;

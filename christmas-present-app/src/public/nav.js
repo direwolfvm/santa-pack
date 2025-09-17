@@ -73,7 +73,7 @@ async function initNav() {
   navElement.appendChild(secondary);
 
   const secondaryList = document.createElement('ul');
-  secondaryList.className = 'usa-nav__secondary-links';
+  secondaryList.className = 'usa-nav__secondary-links site-nav__secondary-links';
   secondary.appendChild(secondaryList);
 
   const currentPage = window.location.pathname.split('/').pop() || 'index.html';
@@ -100,7 +100,7 @@ async function initNav() {
 
   function addSecondaryLink(label, url) {
     const li = document.createElement('li');
-    li.className = 'usa-nav__secondary-item';
+    li.className = 'usa-nav__secondary-item site-nav__secondary-item';
     const link = document.createElement('a');
     link.href = url;
     link.textContent = label;
