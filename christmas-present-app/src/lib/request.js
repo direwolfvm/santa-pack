@@ -29,4 +29,16 @@ async function getRole(supabase, userId) {
   return data?.role || null;
 }
 
-module.exports = { getBearerToken, requireText, getAuthenticatedUser, getRole };
+async function canManageFamily(supabase, userId, role, familyId) {
+  if (role === 'admin') return true;
+  if (role !== 'manager' || !familyId) return false;
+  const { data, error } = await supabase
+    .from('person')
+    .select('id')
+    .eq('user_profile', userId)
+    .eq('family', familyId)
+    .maybeSingle();
+  return !error && Boolean(data);
+}
+
+module.exports = { getBearerToken, requireText, getAuthenticatedUser, getRole, canManageFamily };

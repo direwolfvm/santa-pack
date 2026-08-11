@@ -1,4 +1,4 @@
-const { getAuthenticatedUser, getRole, requireText } = require('../lib/request');
+const { canManageFamily, getAuthenticatedUser, getRole, requireText } = require('../lib/request');
 
 class GiftRoundsController {
     constructor(supabase) {
@@ -19,16 +19,12 @@ class GiftRoundsController {
             return res.status(403).json({ error: 'Unauthorized' });
         }
 
-        const { data: profile } = await this.supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .maybeSingle();
-        if (!profile || (profile.role !== 'manager' && profile.role !== 'admin')) {
+        const role = await getRole(this.supabase, user.id);
+        const { familyId } = req.params;
+        if (!await canManageFamily(this.supabase, user.id, role, familyId)) {
             return res.status(403).json({ error: 'Forbidden' });
         }
 
-        const { familyId } = req.params;
         let name;
         try { name = requireText(req.body.name, 'name'); }
         catch (error) { return res.status(error.status).json({ error: error.message }); }

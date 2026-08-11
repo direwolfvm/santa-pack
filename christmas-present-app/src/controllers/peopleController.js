@@ -1,4 +1,4 @@
-const { getAuthenticatedUser, getRole } = require('../lib/request');
+const { canManageFamily, getAuthenticatedUser, getRole } = require('../lib/request');
 
 class PeopleController {
     constructor(supabase) {
@@ -19,16 +19,12 @@ class PeopleController {
             return res.status(403).json({ error: 'Unauthorized' });
         }
 
-        const { data: profile } = await this.supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .maybeSingle();
-        if (!profile || (profile.role !== 'manager' && profile.role !== 'admin')) {
+        const role = await getRole(this.supabase, user.id);
+        const { familyId } = req.params;
+        if (!await canManageFamily(this.supabase, user.id, role, familyId)) {
             return res.status(403).json({ error: 'Forbidden' });
         }
 
-        const { familyId } = req.params;
         const { user_profile } = req.body;
         if (!user_profile) {
             return res.status(400).json({ error: 'user_profile is required' });
@@ -75,9 +71,6 @@ class PeopleController {
     async approvePerson(req, res) {
         const user = await getAuthenticatedUser(this.supabase, req);
         if (!user) return res.status(401).json({ error: 'Unauthorized' });
-        if (!['manager', 'admin'].includes(await getRole(this.supabase, user.id))) {
-            return res.status(403).json({ error: 'Forbidden' });
-        }
         const { personId } = req.params;
         const { data, error } = await this.supabase
             .from('person')
@@ -91,6 +84,11 @@ class PeopleController {
 
         if (!data || !data.family_pending) {
             return res.status(400).json({ error: 'No pending family request' });
+        }
+
+        const role = await getRole(this.supabase, user.id);
+        if (!await canManageFamily(this.supabase, user.id, role, data.family_pending)) {
+            return res.status(403).json({ error: 'Forbidden' });
         }
 
         const { error: updError } = await this.supabase
@@ -107,10 +105,19 @@ class PeopleController {
     async removePerson(req, res) {
         const user = await getAuthenticatedUser(this.supabase, req);
         if (!user) return res.status(401).json({ error: 'Unauthorized' });
-        if (!['manager', 'admin'].includes(await getRole(this.supabase, user.id))) {
+        const { personId } = req.params;
+        const { data: person, error: personError } = await this.supabase
+            .from('person')
+            .select('family')
+            .eq('id', personId)
+            .maybeSingle();
+        if (personError) return res.status(400).json({ error: personError.message });
+        if (!person?.family) return res.status(404).json({ error: 'Person not found in a family' });
+
+        const role = await getRole(this.supabase, user.id);
+        if (!await canManageFamily(this.supabase, user.id, role, person.family)) {
             return res.status(403).json({ error: 'Forbidden' });
         }
-        const { personId } = req.params;
         const { error } = await this.supabase
             .from('person')
             .update({ family: null, family_pending: null })

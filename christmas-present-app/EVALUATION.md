@@ -12,11 +12,10 @@
 ## Highest-priority follow-ups
 
 1. **Database migrations and policies.** The repository still does not contain the authoritative Supabase schema or RLS policies. Export those into versioned migrations, test them locally, and make server checks mirror the policies.
-2. **Family-scoped organizer authorization.** Managers currently receive broad manager capability in a few controller paths. Add a single authorization service that verifies the manager belongs to the target family for every mutation.
-3. **Frontend modules.** Several pages still contain large inline scripts. Move the remaining workflows into page modules and centralize authenticated fetch, error messages, confirmation dialogs, and loading states.
-4. **API contract tests.** Expand the Supabase test double or run a local Supabase stack to cover happy paths, family boundaries, role escalation, and all create/update/delete routes.
-5. **Content security policy.** Self-host the font and Supabase browser client, then add a strict CSP. The current UI still loads those assets from trusted CDNs.
-6. **Accessible confirmation and announcements.** Replace `alert`/`prompt` usage with accessible dialogs and add live-region feedback for async saves, approvals, and stage changes.
+2. **Frontend modules.** Several pages still contain large inline scripts. Move the remaining workflows into page modules and centralize authenticated fetch, error messages, confirmation dialogs, and loading states.
+3. **API contract tests.** Expand the Supabase test double or run a local Supabase stack to cover happy paths, family boundaries, role escalation, and all create/update/delete routes.
+4. **Content security policy.** Self-host the font and Supabase browser client, then add a strict CSP. The current UI still loads those assets from trusted CDNs.
+5. **Accessible confirmation and announcements.** Replace `alert`/`prompt` usage with accessible dialogs and add live-region feedback for async saves, approvals, and stage changes.
 
 ## Design direction
 
