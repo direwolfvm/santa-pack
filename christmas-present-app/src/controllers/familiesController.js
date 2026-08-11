@@ -1,4 +1,4 @@
-const { getAuthenticatedUser, getRole, requireText } = require('../lib/request');
+const { getAuthenticatedUser, getRequestDatabase, getRole, requireText } = require('../lib/request');
 
 class FamiliesController {
     constructor(supabase) {
@@ -6,6 +6,7 @@ class FamiliesController {
     }
 
     async createFamily(req, res) {
+        const database = getRequestDatabase(this.supabase, req);
         const token = req.headers.authorization?.split(' ')[1];
         if (!token) {
             return res.status(403).json({ error: 'Unauthorized' });
@@ -19,7 +20,7 @@ class FamiliesController {
             return res.status(403).json({ error: 'Unauthorized' });
         }
 
-        const { data: profile } = await this.supabase
+        const { data: profile } = await database
             .from('profiles')
             .select('role')
             .eq('id', user.id)
@@ -31,7 +32,7 @@ class FamiliesController {
         let name;
         try { name = requireText(req.body.name, 'name'); }
         catch (error) { return res.status(error.status).json({ error: error.message }); }
-        const { data, error } = await this.supabase
+        const { data, error } = await database
             .from('family')
             .insert([{ name }]);
 
@@ -42,7 +43,8 @@ class FamiliesController {
     }
 
     async getFamilies(req, res) {
-        const { data, error } = await this.supabase
+        const database = getRequestDatabase(this.supabase, req);
+        const { data, error } = await database
             .from('family')
             .select('*');
 
@@ -53,13 +55,14 @@ class FamiliesController {
     }
 
     async deleteFamily(req, res) {
+        const database = getRequestDatabase(this.supabase, req);
         const user = await getAuthenticatedUser(this.supabase, req);
         if (!user) return res.status(401).json({ error: 'Unauthorized' });
-        if (await getRole(this.supabase, user.id) !== 'admin') {
+        if (await getRole(database, user.id) !== 'admin') {
             return res.status(403).json({ error: 'Forbidden' });
         }
         const { familyId } = req.params;
-        const { error } = await this.supabase
+        const { error } = await database
             .from('family')
             .delete()
             .eq('id', familyId);

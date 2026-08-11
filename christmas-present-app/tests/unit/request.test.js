@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { canManageFamily, getBearerToken, requireText } = require('../../src/lib/request');
+const { canManageFamily, getBearerToken, getRequestDatabase, requireText } = require('../../src/lib/request');
 
 test('getBearerToken accepts a well-formed bearer header', () => {
   assert.equal(getBearerToken({ headers: { authorization: 'Bearer merry-token' } }), 'merry-token');
@@ -10,6 +10,15 @@ test('getBearerToken rejects missing and malformed headers', () => {
   assert.equal(getBearerToken({ headers: {} }), null);
   assert.equal(getBearerToken({ headers: { authorization: 'Basic abc' } }), null);
   assert.equal(getBearerToken({ headers: { authorization: 'Bearer' } }), null);
+});
+
+test('getRequestDatabase scopes supported clients to the request token', () => {
+  const scoped = { name: 'scoped client' };
+  const supabase = {
+    forRequest(token) { assert.equal(token, 'merry-token'); return scoped; }
+  };
+  assert.equal(getRequestDatabase(supabase, { headers: { authorization: 'Bearer merry-token' } }), scoped);
+  assert.equal(getRequestDatabase(supabase, { headers: {} }), supabase);
 });
 
 test('requireText trims valid values and rejects blank or oversized input', () => {

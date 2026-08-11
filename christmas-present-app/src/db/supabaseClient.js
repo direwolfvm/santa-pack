@@ -11,4 +11,12 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+supabase.forRequest = (token) => {
+  if (!token) return supabase;
+  return createClient(supabaseUrl, supabaseKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+};
+
 module.exports = supabase;

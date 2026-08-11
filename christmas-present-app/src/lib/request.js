@@ -3,6 +3,11 @@ function getBearerToken(req) {
   return scheme === 'Bearer' && token ? token : null;
 }
 
+function getRequestDatabase(supabase, req) {
+  const token = getBearerToken(req);
+  return token && typeof supabase.forRequest === 'function' ? supabase.forRequest(token) : supabase;
+}
+
 function requireText(value, field, { maxLength = 120 } = {}) {
   if (typeof value !== 'string' || !value.trim()) {
     const error = new Error(`${field} is required`);
@@ -41,4 +46,4 @@ async function canManageFamily(supabase, userId, role, familyId) {
   return !error && Boolean(data);
 }
 
-module.exports = { getBearerToken, requireText, getAuthenticatedUser, getRole, canManageFamily };
+module.exports = { getBearerToken, getRequestDatabase, requireText, getAuthenticatedUser, getRole, canManageFamily };
