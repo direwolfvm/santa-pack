@@ -191,6 +191,11 @@ td:first-child { font-weight: 700; }
 .login-page .page-card__footer { display: none; }
 .auth-divider { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: .78rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .auth-divider::before, .auth-divider::after { content: ""; height: 1px; flex: 1; background: var(--line); }
+.auth-recovery { padding: 12px 0 2px; border-top: 1px solid var(--line); }
+.auth-recovery summary { width: fit-content; color: var(--holly); font-weight: 800; cursor: pointer; }
+.auth-recovery form { display: grid; gap: 8px; margin-top: 16px; }
+.form-status { min-height: 1.5em; margin: 12px 0 0; color: var(--muted); font-size: .9rem; }
+.reset-page .page-card__container { max-width: 820px; margin: 0 auto; }
 
 .site-footer { margin-top: auto; padding: 28px 20px; color: #cce1d3; background: var(--evergreen-deep); }
 .site-footer__inner { width: min(1180px, 100%); margin: 0 auto; display: flex; justify-content: space-between; gap: 20px; }

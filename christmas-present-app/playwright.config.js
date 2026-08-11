@@ -5,7 +5,7 @@ module.exports = defineConfig({
   outputDir: './output/playwright/results',
   reporter: [['list']],
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL: 'http://127.0.0.1:4273',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure'
   },
@@ -15,8 +15,8 @@ module.exports = defineConfig({
   ],
   webServer: {
     command: 'node src/index.js',
-    url: 'http://127.0.0.1:4173/api/health',
-    env: { PORT: '4173', SUPABASE_URL: 'https://example.supabase.co', SUPABASE_ANON_KEY: 'test-key' },
+    url: 'http://127.0.0.1:4273/api/health',
+    env: { PORT: '4273', SUPABASE_URL: 'https://example.supabase.co', SUPABASE_ANON_KEY: 'test-key' },
     reuseExistingServer: false
   }
 });

@@ -74,3 +74,55 @@ test('signed-in family journey surfaces useful example data', async ({ page }) =
   await page.getByRole('button', { name: 'Open family →' }).click();
   await expect(page).toHaveURL(/giftRounds\.html\?familyId=101/);
 });
+
+test('forgot-password request uses the deployed reset page without revealing account existence', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.supabase = {
+      createClient() {
+        return {
+          auth: {
+            resetPasswordForEmail: async (email, options) => {
+              window.__resetRequest = { email, redirectTo: options.redirectTo };
+              return { data: {}, error: null };
+            },
+            getSession: async () => ({ data: { session: null } })
+          }
+        };
+      }
+    };
+  });
+  await page.route('https://cdn.jsdelivr.net/**', (route) => route.fulfill({ contentType: 'application/javascript', body: '' }));
+  await page.goto('/login.html');
+  await page.getByText('Forgot your password?').click();
+  await page.getByLabel('Account email').fill('kevin@example.com');
+  await page.getByRole('button', { name: 'Email me a reset link' }).click();
+  await expect(page.getByRole('status')).toContainText('If that address belongs to an account');
+  const request = await page.evaluate(() => window.__resetRequest);
+  expect(request).toEqual({
+    email: 'kevin@example.com',
+    redirectTo: 'http://127.0.0.1:4273/reset-password.html'
+  });
+});
+
+test('reset page validates matching passwords before updating the account', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.supabase = {
+      createClient() {
+        return {
+          auth: {
+            getSession: async () => ({ data: { session: { user: { id: 'user-1' } } } }),
+            onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+            updateUser: async () => ({ data: {}, error: null }),
+            signOut: async () => ({ error: null })
+          }
+        };
+      }
+    };
+  });
+  await page.route('https://cdn.jsdelivr.net/**', (route) => route.fulfill({ contentType: 'application/javascript', body: '' }));
+  await page.goto('/reset-password.html');
+  await page.getByLabel('New password', { exact: true }).fill('merry-password');
+  await page.getByLabel('Confirm new password').fill('different-password');
+  await page.getByRole('button', { name: 'Save new password' }).click();
+  await expect(page.getByRole('status')).toHaveText('Those passwords do not match.');
+});

@@ -22,6 +22,15 @@
     <input type="password" id="password" autocomplete="current-password" required />
     <button type="submit">Unwrap my exchange</button>
   </form>
+  <details class="auth-recovery">
+    <summary>Forgot your password?</summary>
+    <form id="forgotPasswordForm">
+      <label for="resetEmail">Account email</label>
+      <input type="email" id="resetEmail" autocomplete="email" placeholder="you@example.com" required />
+      <button type="submit" class="secondary">Email me a reset link</button>
+    </form>
+    <p id="resetStatus" class="form-status" role="status" aria-live="polite"></p>
+  </details>
   <div class="auth-divider">New around here?</div>
   <h2>Create an account</h2>
   <form id="signupForm">

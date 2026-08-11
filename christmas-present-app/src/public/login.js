@@ -1,6 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
   const loginForm = document.getElementById('loginForm');
   const signupForm = document.getElementById('signupForm');
+  const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+  const resetStatus = document.getElementById('resetStatus');
+
+  if (new URLSearchParams(window.location.search).get('reset') === 'success') {
+    resetStatus.textContent = 'Your password has been updated. Sign in with the new one.';
+    document.querySelector('.auth-recovery').open = true;
+  }
 
   async function ensureProfile(user) {
     if (!user) return;
@@ -55,5 +62,21 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       alert('Check your email for a confirmation link to log in.');
     }
+  });
+
+  forgotPasswordForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('resetEmail').value.trim();
+    const button = forgotPasswordForm.querySelector('button');
+    button.disabled = true;
+    resetStatus.textContent = 'Sending your reset link…';
+    const redirectTo = `${window.location.origin}/reset-password.html`;
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
+    button.disabled = false;
+    if (error) {
+      resetStatus.textContent = error.message;
+      return;
+    }
+    resetStatus.textContent = 'If that address belongs to an account, a reset link is on its way.';
   });
 });

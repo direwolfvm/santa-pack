@@ -12,7 +12,8 @@ const PAGE_COPY = {
   'summary-guessing.html': ['Guessing progress', 'Track the guesses and celebrate when everyone is ready for the reveal.'],
   'summary-complete.html': ['The grand reveal', 'See who knew their Santas best—and who fooled the whole room.'],
   'person.html': ['Personal workshop', 'Jump into a round or check its progress.'],
-  'login.html': ['Welcome to Santa Pack', 'A cozy little home for family gift exchanges, suspicious packages, and very serious guessing.']
+  'login.html': ['Welcome to Santa Pack', 'A cozy little home for family gift exchanges, suspicious packages, and very serious guessing.'],
+  'reset-password.html': ['A fresh secret', 'Choose a new password, then get back to the merry mischief.']
 };
 
 function currentPage() {

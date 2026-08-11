@@ -35,3 +35,11 @@ test('serves browser-safe Supabase configuration from the environment', async ()
   if (previousUrl === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = previousUrl;
   if (previousKey === undefined) delete process.env.SUPABASE_ANON_KEY; else process.env.SUPABASE_ANON_KEY = previousKey;
 });
+
+test('serves the public password recovery page', async () => {
+  const response = await request(createApp({ presentsRoutes: emptyRouter(), familiesRoutes: emptyRouter() }))
+    .get('/reset-password.html')
+    .expect(200);
+  assert.match(response.text, /Reset your password/);
+  assert.match(response.text, /autocomplete="new-password"/);
+});
