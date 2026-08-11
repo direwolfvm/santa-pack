@@ -46,6 +46,7 @@
           return;
         }
         const userId = sessionData.session.user.id;
+        const token = sessionData.session.access_token;
         const { data: profile } = await supabaseClient
           .from('profiles')
           .select('role')
@@ -167,13 +168,13 @@
           if (id) {
             await fetch(`/api/presents/${id}`, {
               method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
               body: JSON.stringify({ name, description, cloakedName: cloaked })
             });
           } else {
             const res = await fetch('/api/presents', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
               body: JSON.stringify({ name, description, cloakedName: cloaked, giver: giverId, receiver: receiverId, giftRoundId })
             });
             const created = await res.json();

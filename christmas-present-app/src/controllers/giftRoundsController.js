@@ -1,3 +1,5 @@
+const { getAuthenticatedUser, getRole, requireText } = require('../lib/request');
+
 class GiftRoundsController {
     constructor(supabase) {
         this.supabase = supabase;
@@ -27,7 +29,9 @@ class GiftRoundsController {
         }
 
         const { familyId } = req.params;
-        const { name } = req.body;
+        let name;
+        try { name = requireText(req.body.name, 'name'); }
+        catch (error) { return res.status(error.status).json({ error: error.message }); }
         const { data, error } = await this.supabase
             .from('gift_round')
             .insert([{ name, family: familyId, stage: 'giving' }]);
@@ -76,6 +80,9 @@ class GiftRoundsController {
 
         const { giftRoundId } = req.params;
         const { stage } = req.body;
+        if (!['giving', 'guessing', 'complete'].includes(stage)) {
+            return res.status(400).json({ error: 'Invalid gift round stage' });
+        }
         const { data, error } = await this.supabase
             .from('gift_round')
             .update({ stage })
@@ -89,6 +96,11 @@ class GiftRoundsController {
     }
 
     async deleteGiftRound(req, res) {
+        const user = await getAuthenticatedUser(this.supabase, req);
+        if (!user) return res.status(401).json({ error: 'Unauthorized' });
+        if (await getRole(this.supabase, user.id) !== 'admin') {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
         const { giftRoundId } = req.params;
         const { error } = await this.supabase
             .from('gift_round')

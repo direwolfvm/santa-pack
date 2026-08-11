@@ -1,56 +1,47 @@
-(function injectUswdsAssets() {
-  const head = document.head || document.getElementsByTagName('head')[0];
-  if (!head) return;
+const PAGE_COPY = {
+  'index.html': ['The nice list starts here', 'Keep every family exchange, mystery gift, and merry milestone in one place.'],
+  'giftRounds.html': ['Exchange headquarters', 'Plan the giving, guessing, and grand reveal without spoiling the surprise.'],
+  'people.html': ['Choose a merry maker', 'Pick who you are playing as for this round. Organizers can help on someone’s behalf.'],
+  'presents.html': ['Santa’s secret ledger', 'Add one thoughtful gift for each person, then cloak it with a mysterious name.'],
+  'guesses.html': ['The great gift guess-off', 'Lock in each guess before the wrapping paper comes off.'],
+  'profile.html': ['Your North Pole file', 'Keep your account details and organizer access up to date.'],
+  'manageFamily.html': ['Elf desk', 'Welcome new members and keep this family’s guest list tidy.'],
+  'admin.html': ['North Pole control room', 'A bird’s-eye view of families, rounds, members, and presents.'],
+  'createPerson.html': ['Find your people', 'Tell us your name and request a spot in an existing family.'],
+  'summary-giving.html': ['Round progress', 'See who has finished their list without revealing what is under the tree.'],
+  'summary-guessing.html': ['Guessing progress', 'Track the guesses and celebrate when everyone is ready for the reveal.'],
+  'summary-complete.html': ['The grand reveal', 'See who knew their Santas best—and who fooled the whole room.'],
+  'person.html': ['Personal workshop', 'Jump into a round or check its progress.'],
+  'login.html': ['Welcome to Santa Pack', 'A cozy little home for family gift exchanges, suspicious packages, and very serious guessing.']
+};
 
-  if (!head.querySelector('link[data-uswds]')) {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/uswds@3.7.1/dist/css/uswds.min.css';
-    link.setAttribute('data-uswds', 'true');
-    head.appendChild(link);
-  }
+function currentPage() {
+  return window.location.pathname.split('/').pop() || 'index.html';
+}
 
-  if (!head.querySelector('script[data-uswds]')) {
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/uswds@3.7.1/dist/js/uswds.min.js';
-    script.defer = true;
-    script.setAttribute('data-uswds', 'true');
-    head.appendChild(script);
-  }
-})();
+function createBrand() {
+  const brand = document.createElement('a');
+  brand.className = 'site-brand';
+  brand.href = 'index.html';
+  brand.setAttribute('aria-label', 'Santa Pack home');
+  brand.innerHTML = '<span class="site-brand__mark" aria-hidden="true">★</span><span><span class="site-brand__name">Santa Pack</span><span class="site-brand__tagline">Merry mischief managed</span></span>';
+  return brand;
+}
 
 function ensureHeaderShell() {
   const body = document.body;
-  if (!body) return;
-
+  if (!body || body.classList.contains('login-page')) return;
   let nav = document.getElementById('nav');
   if (!nav) {
     nav = document.createElement('header');
     nav.id = 'nav';
     body.insertBefore(nav, body.firstChild);
   }
-
-  const needsDefaultContent = !nav.innerHTML.trim();
-  nav.classList.add('usa-header', 'usa-header--basic', 'site-header');
-
-  if (needsDefaultContent) {
-    nav.innerHTML = '';
+  nav.classList.add('site-header');
+  if (!nav.innerHTML.trim()) {
     const container = document.createElement('div');
-    container.className = 'usa-nav-container site-nav-container';
-    const navbar = document.createElement('div');
-    navbar.className = 'usa-navbar';
-    const logo = document.createElement('div');
-    logo.className = 'usa-logo';
-    const logoEm = document.createElement('em');
-    logoEm.className = 'usa-logo__text';
-    const logoLink = document.createElement('a');
-    logoLink.href = 'index.html';
-    logoLink.title = 'Santa Pack home';
-    logoLink.textContent = 'Santa Pack';
-    logoEm.appendChild(logoLink);
-    logo.appendChild(logoEm);
-    navbar.appendChild(logo);
-    container.appendChild(navbar);
+    container.className = 'site-nav-container';
+    container.appendChild(createBrand());
     nav.appendChild(container);
   }
 }
@@ -58,137 +49,87 @@ function ensureHeaderShell() {
 function ensureFooterShell() {
   const body = document.body;
   if (!body) return;
-
   let footer = document.querySelector('footer.site-footer');
   if (!footer) {
     footer = document.createElement('footer');
-    footer.className = 'usa-footer usa-footer--slim site-footer';
+    footer.className = 'site-footer';
     body.appendChild(footer);
   }
-
-  if (!footer.querySelector('.site-footer__inner')) {
-    const container = document.createElement('div');
-    container.className = 'grid-container site-footer__inner';
-
-    const content = document.createElement('div');
-    content.className = 'usa-footer__primary-content';
-
-    const small = document.createElement('small');
-    small.textContent = `© ${new Date().getFullYear()} Santa Pack. Happy holidays!`;
-
-    content.appendChild(small);
-    container.appendChild(content);
-
-    footer.appendChild(container);
+  if (!footer.innerHTML.trim()) {
+    footer.innerHTML = `<div class="site-footer__inner"><small>© ${new Date().getFullYear()} Santa Pack</small><small>Made with cocoa, cheer &amp; excellent secrets.</small></div>`;
   }
+}
+
+function enhanceTables(root) {
+  root.querySelectorAll('table').forEach((table) => {
+    if (table.parentElement && table.parentElement.classList.contains('table-wrap')) return;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'table-wrap';
+    table.parentNode.insertBefore(wrapper, table);
+    wrapper.appendChild(table);
+  });
+}
+
+function observeDynamicContent(root) {
+  const observer = new MutationObserver(() => enhanceTables(root));
+  observer.observe(root, { childList: true, subtree: true });
 }
 
 function wrapContentInCard() {
-  if (document.querySelector('.page-card')) {
-    return;
-  }
-
+  if (document.querySelector('.page-card')) return;
   const body = document.body;
+  if (!body) return;
   const nav = document.getElementById('nav');
   const footer = document.querySelector('footer.site-footer');
   const snow = document.getElementById('snow-container');
-
-  if (!body) return;
-
-  const staticElements = new Set();
-  if (nav) staticElements.add(nav);
-  if (footer) staticElements.add(footer);
-  if (snow) staticElements.add(snow);
-
-  const contentElements = [];
-  body.childNodes.forEach((node) => {
-    if (node.nodeType !== Node.ELEMENT_NODE) return;
-    if (staticElements.has(node)) return;
-    if (node.tagName === 'SCRIPT') return;
-    contentElements.push(node);
-  });
-
-  if (!contentElements.length) return;
+  const excluded = new Set([nav, footer, snow]);
+  const elements = [...body.children].filter((el) => !excluded.has(el) && el.tagName !== 'SCRIPT');
+  if (!elements.length) return;
 
   const main = document.createElement('main');
-  main.className = 'usa-section page-main';
-
+  main.className = 'page-main';
+  main.id = 'main-content';
   const grid = document.createElement('div');
   grid.className = 'grid-container';
-  main.appendChild(grid);
-
-  const card = document.createElement('div');
-  card.className = 'usa-card page-card';
-  grid.appendChild(card);
-
+  const card = document.createElement('article');
+  card.className = 'page-card';
   const container = document.createElement('div');
-  container.className = 'usa-card__container';
-  card.appendChild(container);
-
+  container.className = 'page-card__container';
   const cardHeader = document.createElement('header');
-  cardHeader.className = 'usa-card__header page-card__header';
-  container.appendChild(cardHeader);
-
-  const elements = contentElements.slice();
-  let headingIndex = elements.findIndex((el) => /^H[1-6]$/.test(el.tagName));
-  let heading;
-  if (headingIndex !== -1) {
-    heading = elements.splice(headingIndex, 1)[0];
-  }
-  if (!heading) {
-    heading = document.createElement('h1');
-    heading.textContent = document.title || 'Santa Pack';
-  }
+  cardHeader.className = 'page-card__header';
+  const headingIndex = elements.findIndex((el) => /^H1$/.test(el.tagName));
+  const heading = headingIndex >= 0 ? elements.splice(headingIndex, 1)[0] : document.createElement('h1');
+  if (!heading.textContent) heading.textContent = document.title || 'Santa Pack';
   heading.classList.add('page-title');
-  cardHeader.appendChild(heading);
+  const copy = PAGE_COPY[currentPage()] || ['Christmas, organized', 'All the festive details, neatly wrapped up.'];
+  const eyebrow = document.createElement('p');
+  eyebrow.className = 'page-eyebrow';
+  eyebrow.textContent = copy[0];
+  const subtitle = document.createElement('p');
+  subtitle.className = 'page-subtitle';
+  subtitle.textContent = copy[1];
+  cardHeader.append(eyebrow, heading, subtitle);
 
   const cardBody = document.createElement('div');
-  cardBody.className = 'usa-card__body page-card__body';
-  container.appendChild(cardBody);
-
+  cardBody.className = 'page-card__body';
   const cardFooter = document.createElement('div');
-  cardFooter.className = 'usa-card__footer page-card__footer';
-  container.appendChild(cardFooter);
+  cardFooter.className = 'page-card__footer';
+  const footerElements = elements.filter((el) => el.hasAttribute('data-card-footer') || el.classList.contains('card-footer'));
+  elements.filter((el) => !footerElements.includes(el)).forEach((el) => cardBody.appendChild(el));
+  if (footerElements.length) footerElements.forEach((el) => cardFooter.appendChild(el));
+  else cardFooter.innerHTML = '<p class="page-card__footer-note">Keep the surprise merry. Keep the clues mysterious.</p>';
 
-  const footerElements = [];
-  elements.forEach((el) => {
-    if (el.hasAttribute('data-card-footer') || el.classList.contains('card-footer')) {
-      footerElements.push(el);
-    }
-  });
-
-  footerElements.forEach((el) => {
-    const index = elements.indexOf(el);
-    if (index > -1) {
-      elements.splice(index, 1);
-    }
-  });
-
-  elements.forEach((el) => {
-    cardBody.appendChild(el);
-  });
-
-  if (footerElements.length) {
-    footerElements.forEach((el) => {
-      cardFooter.appendChild(el);
-    });
-  } else {
-    const footerNote = document.createElement('p');
-    footerNote.className = 'page-card__footer-note';
-    footerNote.textContent = 'Need something else? Use the navigation above or contact your family organizer.';
-    cardFooter.appendChild(footerNote);
-  }
-
-  if (footer && footer.parentNode) {
-    body.insertBefore(main, footer);
-  } else if (snow && snow.parentNode) {
-    body.insertBefore(main, snow);
-  } else {
-    body.appendChild(main);
-  }
+  container.append(cardHeader, cardBody, cardFooter);
+  card.appendChild(container);
+  grid.appendChild(card);
+  main.appendChild(grid);
+  body.insertBefore(main, footer || snow || null);
+  enhanceTables(cardBody);
+  observeDynamicContent(cardBody);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  document.body.dataset.page = currentPage().replace('.html', '');
   ensureHeaderShell();
   ensureFooterShell();
   wrapContentInCard();

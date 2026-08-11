@@ -1,3 +1,5 @@
+const { getAuthenticatedUser, getRole, requireText } = require('../lib/request');
+
 class FamiliesController {
     constructor(supabase) {
         this.supabase = supabase;
@@ -26,7 +28,9 @@ class FamiliesController {
             return res.status(403).json({ error: 'Forbidden' });
         }
 
-        const { name } = req.body;
+        let name;
+        try { name = requireText(req.body.name, 'name'); }
+        catch (error) { return res.status(error.status).json({ error: error.message }); }
         const { data, error } = await this.supabase
             .from('family')
             .insert([{ name }]);
@@ -49,6 +53,11 @@ class FamiliesController {
     }
 
     async deleteFamily(req, res) {
+        const user = await getAuthenticatedUser(this.supabase, req);
+        if (!user) return res.status(401).json({ error: 'Unauthorized' });
+        if (await getRole(this.supabase, user.id) !== 'admin') {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
         const { familyId } = req.params;
         const { error } = await this.supabase
             .from('family')

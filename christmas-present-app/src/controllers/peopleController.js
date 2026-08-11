@@ -1,3 +1,5 @@
+const { getAuthenticatedUser, getRole } = require('../lib/request');
+
 class PeopleController {
     constructor(supabase) {
         this.supabase = supabase;
@@ -71,6 +73,11 @@ class PeopleController {
     }
 
     async approvePerson(req, res) {
+        const user = await getAuthenticatedUser(this.supabase, req);
+        if (!user) return res.status(401).json({ error: 'Unauthorized' });
+        if (!['manager', 'admin'].includes(await getRole(this.supabase, user.id))) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
         const { personId } = req.params;
         const { data, error } = await this.supabase
             .from('person')
@@ -98,6 +105,11 @@ class PeopleController {
     }
 
     async removePerson(req, res) {
+        const user = await getAuthenticatedUser(this.supabase, req);
+        if (!user) return res.status(401).json({ error: 'Unauthorized' });
+        if (!['manager', 'admin'].includes(await getRole(this.supabase, user.id))) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
         const { personId } = req.params;
         const { error } = await this.supabase
             .from('person')
@@ -124,6 +136,11 @@ class PeopleController {
     }
 
     async deletePerson(req, res) {
+        const user = await getAuthenticatedUser(this.supabase, req);
+        if (!user) return res.status(401).json({ error: 'Unauthorized' });
+        if (await getRole(this.supabase, user.id) !== 'admin') {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
         const { personId } = req.params;
         const { error } = await this.supabase
             .from('person')

@@ -21,6 +21,12 @@
   <div id="membersContainer">Loading...</div>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      if (!sessionData.session) {
+        window.location.href = 'login.html';
+        return;
+      }
+      const token = sessionData.session.access_token;
       const params = new URLSearchParams(window.location.search);
       const familyId = params.get('familyId');
       const familyName = params.get('familyName');
@@ -45,7 +51,7 @@
             const approveBtn = document.createElement('button');
             approveBtn.textContent = 'Approve';
             approveBtn.addEventListener('click', async () => {
-              await fetch(`/api/families/people/${p.id}/approve`, { method: 'POST' });
+              await fetch(`/api/families/people/${p.id}/approve`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
               loadData();
             });
             actionTd.appendChild(approveBtn);
@@ -73,7 +79,7 @@
             const removeBtn = document.createElement('button');
             removeBtn.textContent = 'Remove';
             removeBtn.addEventListener('click', async () => {
-              await fetch(`/api/families/people/${m.id}/remove`, { method: 'POST' });
+              await fetch(`/api/families/people/${m.id}/remove`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
               loadData();
             });
             actionTd.appendChild(removeBtn);

@@ -14,14 +14,15 @@
 </head>
 <body>
   <header id="nav"></header>
-  <h1 id="title">Gift Rounds</h1>
+  <h1 id="title">Gift rounds</h1>
+  <p class="intro">Each round moves through three festive acts: plan the gifts, guess the givers, then reveal the results.</p>
   <div id="giftRoundsContainer">Loading...</div>
   <div id="createGiftRoundSection" data-card-footer>
-    <h2>Create New Gift Round</h2>
+    <h2>Start a new round</h2>
     <form id="giftRoundForm">
-      <label for="giftRoundName">Gift Round Name:</label>
-      <input type="text" id="giftRoundName" required />
-      <button type="submit">Create Gift Round</button>
+      <label for="giftRoundName">Round name</label>
+      <input type="text" id="giftRoundName" placeholder="Christmas Eve 2026" autocomplete="off" required />
+      <button type="submit">Start round</button>
     </form>
   </div>
     <script>
@@ -73,33 +74,20 @@
           container.innerHTML = '';
 
           if (rounds.length === 0) {
-            container.textContent = 'No gift rounds yet.';
+            container.className = 'empty-state';
+            container.innerHTML = '<strong>No rounds under this tree yet.</strong><br>Ask an organizer to start the first one.';
             return;
           }
-
-          const table = document.createElement('table');
-          const thead = document.createElement('thead');
-          const headRow = document.createElement('tr');
-          ['Name', 'Stage', 'Ready', 'Actions', 'Summary'].forEach(text => {
-            const th = document.createElement('th');
-            th.textContent = text;
-            headRow.appendChild(th);
-          });
-          thead.appendChild(headRow);
-          table.appendChild(thead);
-          const tbody = document.createElement('tbody');
+          container.className = 'round-grid';
 
           for (const r of rounds) {
-            const row = document.createElement('tr');
-            const nameTd = document.createElement('td');
-            nameTd.textContent = r.name;
-            row.appendChild(nameTd);
-
-            const stageTd = document.createElement('td');
-            stageTd.textContent = r.stage;
-            row.appendChild(stageTd);
-
-            const readyTd = document.createElement('td');
+            const card = document.createElement('article');
+            card.className = 'round-card';
+            const title = document.createElement('h3');
+            title.textContent = r.name;
+            const stageBadge = document.createElement('span');
+            stageBadge.className = `stage-badge stage-badge--${r.stage}`;
+            stageBadge.textContent = r.stage;
             let ready = false;
             if (r.stage === 'giving' || r.stage === 'guessing') {
               const presRes = await fetch(`/api/presents?giftRoundId=${r.id}`);
@@ -117,17 +105,18 @@
                 });
               }
             }
-            readyTd.textContent = ready ? '✔️' : '';
-            row.appendChild(readyTd);
-
-            const actionsTd = document.createElement('td');
+            const status = document.createElement('p');
+            status.className = 'round-card__meta';
+            status.textContent = r.stage === 'complete' ? 'The results are in.' : ready ? 'Everyone is ready for the next step!' : `${people.length} people are taking part.`;
+            const actions = document.createElement('div');
+            actions.className = 'round-card__actions';
 
             const goBtn = document.createElement('button');
-            goBtn.textContent = 'Go to People';
+            goBtn.textContent = r.stage === 'giving' ? 'Plan gifts' : r.stage === 'guessing' ? 'Make guesses' : 'See players';
             goBtn.addEventListener('click', () => {
               window.location.href = `people.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${r.id}&stage=${encodeURIComponent(r.stage)}`;
             });
-            actionsTd.appendChild(goBtn);
+            actions.appendChild(goBtn);
 
             if (isAdmin) {
               const switchBtn = document.createElement('button');
@@ -150,7 +139,8 @@
                 });
                 loadGiftRounds();
               });
-              actionsTd.appendChild(switchBtn);
+              switchBtn.classList.add('secondary');
+              actions.appendChild(switchBtn);
 
               if (r.stage === 'guessing' && ready) {
                 const completeBtn = document.createElement('button');
@@ -163,15 +153,12 @@
                   });
                   loadGiftRounds();
                 });
-                actionsTd.appendChild(completeBtn);
+                actions.appendChild(completeBtn);
               }
             }
-
-            row.appendChild(actionsTd);
-
-            const summaryTd = document.createElement('td');
             const summaryBtn = document.createElement('button');
-            summaryBtn.textContent = 'View Summary';
+            summaryBtn.textContent = 'View summary';
+            summaryBtn.classList.add('secondary');
             summaryBtn.addEventListener('click', () => {
               let page;
               if (r.stage === 'giving') page = 'summary-giving.html';
@@ -179,13 +166,10 @@
               else page = 'summary-complete.html';
               window.location.href = `${page}?familyId=${familyId}&familyName=${encodeURIComponent(familyName)}&giftRoundId=${r.id}&stage=${encodeURIComponent(r.stage)}`;
             });
-            summaryTd.appendChild(summaryBtn);
-            row.appendChild(summaryTd);
-            tbody.appendChild(row);
+            actions.appendChild(summaryBtn);
+            card.append(stageBadge, title, status, actions);
+            container.appendChild(card);
           }
-
-          table.appendChild(tbody);
-          container.appendChild(table);
         }
 
         if (canCreate) {

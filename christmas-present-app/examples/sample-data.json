@@ -1,0 +1,24 @@
+{
+  "families": [
+    { "id": 101, "name": "The McCallisters" },
+    { "id": 102, "name": "The Griswolds" }
+  ],
+  "people": [
+    { "id": 1001, "name": "Kate", "family": 101, "role": "manager" },
+    { "id": 1002, "name": "Peter", "family": 101, "role": "user" },
+    { "id": 1003, "name": "Kevin", "family": 101, "role": "user" },
+    { "id": 1004, "name": "Buzz", "family": 101, "role": "user" },
+    { "id": 2001, "name": "Clark", "family": 102, "role": "manager" },
+    { "id": 2002, "name": "Ellen", "family": 102, "role": "user" }
+  ],
+  "giftRounds": [
+    { "id": 5001, "name": "Christmas Eve 2026", "family": 101, "stage": "giving" },
+    { "id": 5002, "name": "Last Year’s Legendary Exchange", "family": 101, "stage": "complete" },
+    { "id": 6001, "name": "Griswold Family Christmas", "family": 102, "stage": "guessing" }
+  ],
+  "presents": [
+    { "id": 9001, "gift_round": 5001, "giver": 1001, "receiver": 1002, "name": "Wool scarf", "description": "Forest green and extra cozy", "cloaked_name": "A long winter’s nap" },
+    { "id": 9002, "gift_round": 5001, "giver": 1002, "receiver": 1003, "name": "Talkboy recorder", "description": "For extremely important field work", "cloaked_name": "Operation Mistletoe" },
+    { "id": 9003, "gift_round": 5001, "giver": 1003, "receiver": 1004, "name": "Spider food", "description": "A very Buzz-specific stocking stuffer", "cloaked_name": "Keep the change" }
+  ]
+}

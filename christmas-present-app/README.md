@@ -1,67 +1,54 @@
-# Christmas Present App
+# Santa Pack application
 
-## Overview
-The Christmas Present App is a multi-user application designed to enhance the experience of giving and receiving Christmas presents. It allows users to create, manage, and share their present lists with friends and family.
+A small Express and Supabase application for family gift exchanges. The browser UI is intentionally framework-free: shared layout, navigation, and styling enhance a set of focused HTML workflows.
 
-## Features
-- User authentication and management
-- Create, retrieve, update, and delete presents
-- Real-time updates for present lists
-- Integration with Supabase for database management
+## Requirements
 
-## Getting Started
+- Node.js 20 or newer
+- A Supabase project with the Santa Pack tables and row-level-security policies
 
-### Prerequisites
-- Node.js (version 14 or higher)
-- npm (Node package manager)
-- Supabase account
+## Setup
 
-### Installation
-1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/christmas-present-app.git
-   ```
-2. Navigate to the project directory:
-   ```
-   cd christmas-present-app
-   ```
-3. Install the dependencies:
-   ```
-   npm install
-   ```
-
-### Configuration
-1. Copy `.env.example` to `.env` and adjust the Supabase credentials if needed:
-   ```
-   SUPABASE_URL=https://nlcisvrrkypadyjzsfnj.supabase.co
-   SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sY2lzdnJya3lwYWR5anpzZm5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNDUzMTAsImV4cCI6MjA2NzgyMTMxMH0.QURkxMU1XcS7TfO1MFcs5wC3-A4Beon1Fc8A97QgJU4
-   PORT=8080
-   ```
-
-### Running the Application
-To start the application, run:
+```sh
+cp .env.example .env
+npm install
+npm run dev
 ```
-npm start
+
+Set these values in `.env`:
+
+```dotenv
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+PORT=8080
 ```
-The server will start on `http://localhost:8080`.
 
-If your environment requires an outbound HTTP(S) proxy, set `HTTP_PROXY` or
-`HTTPS_PROXY` (or `GLOBAL_AGENT_HTTP_PROXY`) before starting the server. The
-application uses `global-agent` to route requests through the proxy when these
-variables are present.
+Never use a Supabase service-role key in the browser or commit it to the repository.
 
-### API Endpoints
-- `POST /api/presents` - Create a new present
-- `GET /api/presents` - Retrieve all presents
-- `PUT /api/presents/:id` - Update a present
-- `DELETE /api/presents/:id` - Delete a present
-- `GET /api/families` - Retrieve all families
-- `POST /api/families` - Create a family
-- `GET /api/families/:familyId/gift-rounds` - Retrieve gift rounds for a family
-- `POST /api/families/:familyId/gift-rounds` - Create a gift round for a family
+## Scripts
 
-## Contributing
-Contributions are welcome! Please open an issue or submit a pull request for any enhancements or bug fixes.
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the app with automatic restarts |
+| `npm start` | Start the production server |
+| `npm test` | Run fast unit and server integration tests |
+| `npm run test:e2e` | Run desktop and mobile browser tests |
+| `npm run test:all` | Run both suites |
 
-## License
-This project is licensed under the MIT License.
+Playwright starts its own test server with safe placeholder Supabase values. Browser traces and failure screenshots are written to `output/playwright/` and ignored by Git.
+
+## Example data
+
+[`examples/sample-data.json`](./examples/sample-data.json) contains two festive sample households, six people, three rounds in different stages, and several cloaked presents. It is designed as a readable fixture and a source for seed scripts without embedding real account IDs or credentials.
+
+## Architecture
+
+- `src/app.js` creates and configures the Express application.
+- `src/index.js` is the production entry point.
+- `src/controllers/` contains API behavior.
+- `src/lib/request.js` centralizes bearer-token parsing and input validation.
+- `src/public/` contains the browser workflows and shared Christmas design system.
+- `tests/unit/` covers server and authorization seams.
+- `tests/e2e/` covers responsive and keyboard-critical browser behavior.
+
+The `/api/health` endpoint is available for container health checks. The server disables the `X-Powered-By` response header and limits request bodies to 100 KB.

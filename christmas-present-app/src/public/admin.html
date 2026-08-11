@@ -14,6 +14,7 @@
 </head>
 <body>
   <script>
+    let adminToken = '';
     document.addEventListener('DOMContentLoaded', async () => {
       const { data } = await supabaseClient.auth.getSession();
       if (!data.session) {
@@ -29,6 +30,7 @@
         window.location.href = 'index.html';
         return;
       }
+      adminToken = data.session.access_token;
       loadData();
     });
   </script>
@@ -71,7 +73,7 @@ async function loadData() {
     const delTd=document.createElement('td');
     const btn=document.createElement('button');
     btn.textContent='Delete';
-    btn.addEventListener('click',()=>{fetch(`/api/families/${f.id}`,{method:'DELETE'}).then(loadData);});
+    btn.addEventListener('click',()=>{fetch(`/api/families/${f.id}`,{method:'DELETE',headers:{'Authorization':`Bearer ${adminToken}`}}).then(loadData);});
     delTd.appendChild(btn);
     row.appendChild(delTd);
     famBody.appendChild(row);
@@ -98,7 +100,7 @@ async function loadData() {
     const delTd=document.createElement('td');
     const btn=document.createElement('button');
     btn.textContent='Delete';
-    btn.addEventListener('click',()=>{fetch(`/api/families/gift-rounds/${r.id}`,{method:'DELETE'}).then(loadData);});
+    btn.addEventListener('click',()=>{fetch(`/api/families/gift-rounds/${r.id}`,{method:'DELETE',headers:{'Authorization':`Bearer ${adminToken}`}}).then(loadData);});
     delTd.appendChild(btn);
     row.appendChild(delTd);
     rBody.appendChild(row);
@@ -156,7 +158,7 @@ async function loadData() {
     const delTd=document.createElement('td');
     const btn=document.createElement('button');
     btn.textContent='Delete';
-    btn.addEventListener('click',()=>{fetch(`/api/families/people/${p.id}`,{method:'DELETE'}).then(loadData);});
+    btn.addEventListener('click',()=>{fetch(`/api/families/people/${p.id}`,{method:'DELETE',headers:{'Authorization':`Bearer ${adminToken}`}}).then(loadData);});
     delTd.appendChild(btn);
     row.appendChild(delTd);
     pBody.appendChild(row);
@@ -192,7 +194,7 @@ async function loadData() {
       const aBtn = document.createElement('button');
       aBtn.textContent = 'Approve';
       aBtn.addEventListener('click', () => {
-        fetch(`/api/families/people/${p.id}/approve`, { method: 'POST' }).then(loadData);
+        fetch(`/api/families/people/${p.id}/approve`, { method: 'POST', headers: { 'Authorization': `Bearer ${adminToken}` } }).then(loadData);
       });
       approveTd.appendChild(aBtn);
       row.appendChild(approveTd);
@@ -224,7 +226,7 @@ async function loadData() {
     const delTd=document.createElement('td');
     const btn=document.createElement('button');
     btn.textContent='Delete';
-    btn.addEventListener('click',()=>{fetch(`/api/presents/${pr.id}`,{method:'DELETE'}).then(loadData);});
+    btn.addEventListener('click',()=>{fetch(`/api/presents/${pr.id}`,{method:'DELETE',headers:{'Authorization':`Bearer ${adminToken}`}}).then(loadData);});
     delTd.appendChild(btn);
     row.appendChild(delTd);
     presBody.appendChild(row);

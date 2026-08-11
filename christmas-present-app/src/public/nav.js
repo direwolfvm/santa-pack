@@ -2,7 +2,7 @@ async function initNav() {
   const navContainer = document.getElementById('nav');
   if (!navContainer) return;
 
-  navContainer.classList.add('usa-header', 'usa-header--basic', 'site-header');
+  navContainer.classList.add('site-header');
 
   const { data } = await supabaseClient.auth.getSession();
   if (!data.session) {
@@ -40,50 +40,35 @@ async function initNav() {
   navContainer.innerHTML = '';
 
   const navWrapper = document.createElement('div');
-  navWrapper.className = 'usa-nav-container site-nav-container';
+  navWrapper.className = 'site-nav-container';
   navContainer.appendChild(navWrapper);
-
-  const navbar = document.createElement('div');
-  navbar.className = 'usa-navbar';
-  navWrapper.appendChild(navbar);
-
-  const logo = document.createElement('div');
-  logo.className = 'usa-logo';
-  const logoEm = document.createElement('em');
-  logoEm.className = 'usa-logo__text';
-  const logoLink = document.createElement('a');
-  logoLink.href = 'index.html';
-  logoLink.title = 'Santa Pack home';
-  logoLink.textContent = 'Santa Pack';
-  logoEm.appendChild(logoLink);
-  logo.appendChild(logoEm);
-  navbar.appendChild(logo);
+  navWrapper.appendChild(createBrand());
 
   const navElement = document.createElement('nav');
-  navElement.className = 'usa-nav';
+  navElement.className = 'site-nav';
   navElement.setAttribute('aria-label', 'Primary navigation');
   navWrapper.appendChild(navElement);
 
   const primaryList = document.createElement('ul');
-  primaryList.className = 'usa-nav__primary usa-accordion site-nav__primary';
+  primaryList.className = 'site-nav__primary';
   navElement.appendChild(primaryList);
 
   const secondary = document.createElement('div');
-  secondary.className = 'usa-nav__secondary site-nav__secondary';
+  secondary.className = 'site-nav__secondary';
   navElement.appendChild(secondary);
 
   const secondaryList = document.createElement('ul');
-  secondaryList.className = 'usa-nav__secondary-links site-nav__secondary-links';
+  secondaryList.className = 'site-nav__secondary-links';
   secondary.appendChild(secondaryList);
 
   const currentPage = window.location.pathname.split('/').pop() || 'index.html';
 
   function addPrimaryLink(label, url) {
     const li = document.createElement('li');
-    li.className = 'usa-nav__primary-item';
+    li.className = 'site-nav__primary-item';
 
     const link = document.createElement('a');
-    link.className = 'usa-nav__link';
+    link.className = 'site-nav__link';
     link.href = url;
     const span = document.createElement('span');
     span.textContent = label;
@@ -123,7 +108,7 @@ async function initNav() {
 
   if (familyId) {
     const giftRoundsUrl = `giftRounds.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName || '')}`;
-    addPrimaryLink('Gift Rounds', giftRoundsUrl);
+    addPrimaryLink('Gift rounds', giftRoundsUrl);
   }
 
   if (familyId && personId) {
@@ -131,10 +116,10 @@ async function initNav() {
     addPrimaryLink('Person', personUrl);
   }
 
-  addSecondaryLink('Profile', 'profile.html');
+  addSecondaryLink('My profile', 'profile.html');
 
   if (isAdmin) {
-    addSecondaryLink('Management Console', 'admin.html');
+    addSecondaryLink('Admin', 'admin.html');
   }
 
   let canManageFamily = false;
@@ -156,15 +141,15 @@ async function initNav() {
 
   if (canManageFamily) {
     const manageUrl = `manageFamily.html?familyId=${familyId}&familyName=${encodeURIComponent(familyName || '')}`;
-    addSecondaryLink('Manage Family', manageUrl);
+    addSecondaryLink('Manage family', manageUrl);
   }
 
   const signOutContainer = document.createElement('div');
   signOutContainer.className = 'site-nav__signout';
   const signOutBtn = document.createElement('button');
   signOutBtn.type = 'button';
-  signOutBtn.className = 'usa-button usa-button--secondary';
-  signOutBtn.textContent = 'Sign Out';
+  signOutBtn.className = 'button--small';
+  signOutBtn.textContent = 'Sign out';
   signOutBtn.addEventListener('click', async () => {
     await supabaseClient.auth.signOut();
     window.location.href = 'login.html';

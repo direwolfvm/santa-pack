@@ -14,18 +14,18 @@
 </head>
 <body>
   <header id="nav"></header>
-  <h1>Welcome to Santa Pack</h1>
-  <p>Create your first family to begin planning gift exchanges.</p>
-  <h2>Families</h2>
+  <h1>Your holiday households</h1>
+  <p class="intro">Choose a family to plan a round, add secret gifts, or check how close everyone is to the big reveal.</p>
+  <div class="section-heading"><h2>Your families</h2><p id="familyCount"></p></div>
   <div id="familiesContainer">Loading...</div>
-  <div id="joinFamilySection" data-card-footer><button id="joinFamilyBtn">Request to Join an Existing Family</button></div>
+  <div id="joinFamilySection" data-card-footer><div><strong>Missing a family?</strong><br><span>Ask to join an existing household.</span></div><button id="joinFamilyBtn">Find my family</button></div>
 
   <div id="createFamilySection">
-    <h2>Create New Family</h2>
+    <h2>Start a new family</h2>
     <form id="familyForm">
-      <label for="familyName">Family Name:</label>
-      <input type="text" id="familyName" required />
-      <button type="submit">Create Family</button>
+      <label for="familyName">Family name</label>
+      <input type="text" id="familyName" placeholder="The McCallisters" autocomplete="off" required />
+      <button type="submit">Create family</button>
     </form>
   </div>
 
@@ -53,55 +53,38 @@
 
       container.innerHTML = '';
 
+      document.getElementById('familyCount').textContent = `${families.length} ${families.length === 1 ? 'family' : 'families'}`;
       if (families.length === 0) {
-        container.textContent = 'No families yet.';
+        container.className = 'empty-state';
+        container.innerHTML = '<strong>Your list is still blank.</strong><br>Join a family below, or ask an administrator to create one.';
         return;
       }
 
-      const table = document.createElement('table');
-      const thead = document.createElement('thead');
-      const headRow = document.createElement('tr');
-      ['Family', 'Gift Rounds', 'People', 'Family Page'].forEach(text => {
-        const th = document.createElement('th');
-        th.textContent = text;
-        headRow.appendChild(th);
-      });
-      thead.appendChild(headRow);
-      table.appendChild(thead);
-      const tbody = document.createElement('tbody');
+      container.className = 'family-grid';
 
       for (const f of families) {
-        const row = document.createElement('tr');
-
-        const nameTd = document.createElement('td');
-        nameTd.textContent = f.name;
-        row.appendChild(nameTd);
-
-        const roundsTd = document.createElement('td');
-        const rounds = await fetch(`/api/families/${f.id}/gift-rounds`).then(r => r.json());
-        roundsTd.textContent = rounds.length ? rounds.map(r => r.name).join(', ') : 'None';
-        row.appendChild(roundsTd);
-
-        const peopleTd = document.createElement('td');
-        const people = await fetch(`/api/families/${f.id}/people`).then(r => r.json());
-        peopleTd.textContent = people.length ? people.map(p => p.name).join(', ') : 'None';
-        row.appendChild(peopleTd);
-
-        const actionTd = document.createElement('td');
+        const card = document.createElement('article');
+        card.className = 'family-card';
+        const [rounds, people] = await Promise.all([
+          fetch(`/api/families/${f.id}/gift-rounds`).then(r => r.json()),
+          fetch(`/api/families/${f.id}/people`).then(r => r.json())
+        ]);
+        const title = document.createElement('h3');
+        title.textContent = f.name;
+        const meta = document.createElement('div');
+        meta.className = 'family-card__meta';
+        meta.innerHTML = `<span><strong>${people.length}</strong> merry makers</span><span><strong>${rounds.length}</strong> gift ${rounds.length === 1 ? 'round' : 'rounds'}</span>`;
+        const actions = document.createElement('div');
+        actions.className = 'family-card__actions';
         const btn = document.createElement('button');
-        btn.classList.add('table-btn');
-        btn.textContent = 'View Family';
+        btn.textContent = 'Open family →';
         btn.addEventListener('click', () => {
           window.location.href = `giftRounds.html?familyId=${f.id}&familyName=${encodeURIComponent(f.name)}`;
         });
-        actionTd.appendChild(btn);
-        row.appendChild(actionTd);
-
-        tbody.appendChild(row);
+        actions.appendChild(btn);
+        card.append(title, meta, actions);
+        container.appendChild(card);
       }
-
-      table.appendChild(tbody);
-      container.appendChild(table);
     }
 
 

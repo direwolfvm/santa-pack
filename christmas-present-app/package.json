@@ -1,23 +1,28 @@
 {
   "name": "christmas-present-app",
   "version": "1.0.0",
-  "description": "A multi-user Christmas present experience application using Node.js and Supabase.",
+  "description": "A delightfully festive family gift-exchange planner.",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "test": "node --test tests/unit/*.test.js",
+    "test:e2e": "playwright test",
+    "test:all": "npm test && npm run test:e2e"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.50.5",
-    "body-parser": "^2.2.0",
-    "cross-fetch": "^4.1.0",
-    "dotenv": "^10.0.0",
-    "express": "^4.21.2",
-    "global-agent": "^3.0.0"
+    "@supabase/supabase-js": "^2.112.3",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
   },
   "devDependencies": {
-    "nodemon": "^2.0.12"
+    "@playwright/test": "^1.62.1",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.2.2"
   },
-  "author": "Your Name",
+  "author": "Santa Pack contributors",
   "license": "MIT"
 }

@@ -1,11 +1,29 @@
+const { getAuthenticatedUser, getRole, requireText } = require('../lib/request');
+
 class PresentsController {
     constructor(supabase) {
         this.supabase = supabase;
     }
 
     async createPresent(req, res) {
+        const user = await getAuthenticatedUser(this.supabase, req);
+        if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
         const { name, description, giver, receiver, cloakedName, giftRoundId } = req.body;
-        const insertData = { name, description };
+        let cleanName;
+        try {
+            cleanName = requireText(name, 'name');
+        } catch (error) {
+            return res.status(error.status).json({ error: error.message });
+        }
+        const role = await getRole(this.supabase, user.id);
+        if (role !== 'admin' && role !== 'manager') {
+            const { data: person } = await this.supabase
+                .from('person').select('id').eq('id', giver).eq('user_profile', user.id).maybeSingle();
+            if (!person) return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        const insertData = { name: cleanName, description: typeof description === 'string' ? description.trim() : '' };
         if (giver) insertData.giver = giver;
         if (receiver) insertData.receiver = receiver;
         if (cloakedName !== undefined) insertData.cloaked_name = cloakedName;
@@ -35,43 +53,35 @@ class PresentsController {
     }
 
     async updatePresent(req, res) {
-        const token = req.headers.authorization?.split(' ')[1];
-        if (!token) {
-            return res.status(403).json({ error: 'Unauthorized' });
-        }
-
-        const {
-            data: { user },
-            error: userError,
-        } = await this.supabase.auth.getUser(token);
-        if (userError || !user) {
-            return res.status(403).json({ error: 'Unauthorized' });
-        }
-
-        const { data: profile } = await this.supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .maybeSingle();
+        const user = await getAuthenticatedUser(this.supabase, req);
+        if (!user) return res.status(401).json({ error: 'Unauthorized' });
+        const role = await getRole(this.supabase, user.id);
 
         const { id } = req.params;
-        if (profile?.role !== 'admin') {
+        if (role !== 'admin' && role !== 'manager') {
             const { data: present } = await this.supabase
                 .from('present')
                 .select('giver, receiver')
                 .eq('id', id)
                 .maybeSingle();
 
-            if (
-                !present ||
-                (present.giver !== user.id && present.receiver !== user.id)
-            ) {
+            if (!present) {
+                return res.status(403).json({ error: 'Forbidden' });
+            }
+            const { data: person } = await this.supabase
+                .from('person').select('id').eq('user_profile', user.id).maybeSingle();
+            if (!person || (String(present.giver) !== String(person.id) && String(present.receiver) !== String(person.id))) {
                 return res.status(403).json({ error: 'Forbidden' });
             }
         }
 
         const { name, description, cloakedName, receiverGuess, revealed } = req.body;
-        const updates = { name, description };
+        const updates = {};
+        if (name !== undefined) {
+            try { updates.name = requireText(name, 'name'); }
+            catch (error) { return res.status(error.status).json({ error: error.message }); }
+        }
+        if (description !== undefined) updates.description = typeof description === 'string' ? description.trim() : '';
         if (cloakedName !== undefined) updates.cloaked_name = cloakedName;
         if (receiverGuess !== undefined) updates.receiver_guess = receiverGuess;
         if (revealed !== undefined) updates.revealed = revealed;
@@ -94,34 +104,21 @@ class PresentsController {
     }
 
     async deletePresent(req, res) {
-        const token = req.headers.authorization?.split(' ')[1];
-        if (!token) {
-            return res.status(403).json({ error: 'Unauthorized' });
-        }
-
-        const {
-            data: { user },
-            error: userError,
-        } = await this.supabase.auth.getUser(token);
-        if (userError || !user) {
-            return res.status(403).json({ error: 'Unauthorized' });
-        }
-
-        const { data: profile } = await this.supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .maybeSingle();
+        const user = await getAuthenticatedUser(this.supabase, req);
+        if (!user) return res.status(401).json({ error: 'Unauthorized' });
+        const role = await getRole(this.supabase, user.id);
 
         const { id } = req.params;
-        if (profile?.role !== 'admin') {
+        if (role !== 'admin' && role !== 'manager') {
             const { data: present } = await this.supabase
                 .from('present')
                 .select('giver')
                 .eq('id', id)
                 .maybeSingle();
 
-            if (!present || present.giver !== user.id) {
+            const { data: person } = await this.supabase
+                .from('person').select('id').eq('user_profile', user.id).maybeSingle();
+            if (!present || !person || String(present.giver) !== String(person.id)) {
                 return res.status(403).json({ error: 'Forbidden' });
             }
         }
