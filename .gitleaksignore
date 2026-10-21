@@ -1,0 +1,10 @@
+# Reviewed false positives. These are Supabase anon (public) keys that are meant
+# to ship in browser code; access is controlled by row-level security.
+1332dc3b185dbad68bcbf71a98686b3096611c5c:christmas-present-app/src/public/supabaseClient.js:jwt:2
+47d02eb3d6408b74f78ac66d43638374a5f6fcab:christmas-present-app/src/public/supabaseClient.js:jwt:2
+0bc42b10dc43d55a02d56c8d58dc4ce9aeccf47f:christmas-present-app/src/public/supabaseClient.js:jwt:2
+86c0b972f16be81526da36a435eeb6b647dab5c6:christmas-present-app/src/public/supabaseClient.js:jwt:2
+da553ae454689cfe97ccf558308c588e10af35ea:christmas-present-app/.env.example:jwt:2
+da553ae454689cfe97ccf558308c588e10af35ea:christmas-present-app/README.md:jwt:37
+eb79d281a789423a3e61a54c36ff80787404c800:christmas-present-app/README.md:jwt:37
+eb79d281a789423a3e61a54c36ff80787404c800:christmas-present-app/.env.example:jwt:2
