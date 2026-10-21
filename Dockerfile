@@ -1,4 +1,4 @@
-FROM node:22-alpine
+FROM node:25-alpine
 WORKDIR /app
 # Copy package files first for caching
 COPY christmas-present-app/package*.json ./christmas-present-app/
