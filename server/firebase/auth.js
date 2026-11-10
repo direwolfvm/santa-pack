@@ -20,7 +20,13 @@ export function createAuth({ auth, store }) {
     let decoded;
     try {
       decoded = await auth.verifyIdToken(token, true);
-    } catch {
+    } catch (error) {
+      // Log why (never the token) so a misconfiguration is visible in Cloud Run logs.
+      console.warn(
+        'ID token rejected:',
+        /** @type {{ code?: string }} */ (error)?.code ?? 'unknown',
+        String(/** @type {Error} */ (error)?.message ?? '').slice(0, 200),
+      );
       throw new HttpError(401, 'Please sign in again.');
     }
     if (!decoded.email_verified) {

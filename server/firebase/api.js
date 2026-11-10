@@ -21,6 +21,7 @@ const longText = z.string().trim().max(2000);
 
 const schemas = {
   displayName: z.object({ displayName: z.string().trim().min(1).max(60) }),
+  guest: z.object({ displayName: z.string().trim().min(1, 'Required').max(60) }),
   joinCode: z.object({
     code: z
       .string()
@@ -99,10 +100,33 @@ export function createApi({ store, requireUser, requireAdmin }) {
     const users = await store.getUsers(list.map((m) => m.uid));
     return list.map((m) => ({
       uid: m.uid,
-      displayName: users.get(m.uid)?.displayName ?? 'Former elf',
+      displayName: m.kind === 'guest' ? (m.displayName ?? 'Guest') : (users.get(m.uid)?.displayName ?? 'Former elf'),
       familyRole: m.familyRole,
       status: m.status,
+      guest: m.kind === 'guest',
     }));
+  }
+
+  /**
+   * Who the request plays as. Normally the signed-in user. With ?as=<guestId>,
+   * a manager of the family plays for a guest (a player without an account).
+   * Only guests can be played for, never another account.
+   *
+   * @param {import('express').Request} req @param {Response} res
+   * @param {string} familyId @param {boolean} isManager
+   * @returns {Promise<{ uid: string, isAdmin: boolean, guest: boolean }>}
+   */
+  async function actorFor(req, res, familyId, isManager) {
+    const as = req.query.as;
+    if (as === undefined || as === '') return { ...viewerOf(res), guest: false };
+    const guestUid = id.parse(as);
+    if (!isManager) throw new HttpError(403, 'Only family managers can play for someone else.');
+    const membership = await store.getMembership(familyId, guestUid);
+    if (membership?.kind !== 'guest' || membership.status !== 'member') {
+      throw new HttpError(403, 'You can only play for players without an account.');
+    }
+    // Acting for a guest shows exactly what that guest may see, even to a site admin.
+    return { uid: guestUid, isAdmin: false, guest: true };
   }
 
   api.use(requireUser);
@@ -192,13 +216,23 @@ export function createApi({ store, requireUser, requireAdmin }) {
     res.json({ status: 'member' });
   });
 
+  api.post('/families/:familyId/guests', async (req, res) => {
+    const { family } = await familyAccess(param(req, 'familyId'), currentUser(res), { manager: true });
+    const { displayName } = schemas.guest.parse(req.body);
+    const guest = await store.addGuest(family.id, displayName);
+    await store.audit(currentUser(res).uid, 'member.guest', { familyId: family.id, uid: guest.uid });
+    res.status(201).json({ uid: guest.uid, displayName, guest: true });
+  });
+
   api.patch('/families/:familyId/members/:uid', async (req, res) => {
     const { family } = await familyAccess(param(req, 'familyId'), currentUser(res), { manager: true });
     const uid = param(req, 'uid');
     const { familyRole } = schemas.familyRole.parse(req.body);
-    if ((await store.getMembership(family.id, uid))?.status !== 'member') {
+    const target = await store.getMembership(family.id, uid);
+    if (target?.status !== 'member') {
       throw new HttpError(404, 'That person is not in this family.');
     }
+    if (target.kind === 'guest') throw new HttpError(400, 'Players without an account can’t be managers.');
     await store.updateMembership(family.id, uid, { familyRole });
     await store.audit(currentUser(res).uid, 'member.role', { familyId: family.id, uid, familyRole });
     res.json({ familyRole });
@@ -225,13 +259,13 @@ export function createApi({ store, requireUser, requireAdmin }) {
   });
 
   api.get('/rounds/:roundId', async (req, res) => {
-    const viewer = viewerOf(res);
     const { round, family, isManager } = await roundAccess(param(req, 'roundId'), currentUser(res));
+    const viewer = await actorFor(req, res, family.id, isManager);
     const [presents, memberships] = await Promise.all([store.listPresents(round.id), store.listMemberships(family.id)]);
     const members = (await describeMembers(memberships)).filter((m) => m.status === 'member');
     res.json({
       round: { id: round.id, familyId: family.id, familyName: family.name, name: round.name, stage: round.stage },
-      me: { uid: viewer.uid, isManager },
+      me: { uid: viewer.uid, isManager, actingAsGuest: viewer.guest },
       members,
       presents: presents.map((p) => projectPresent(p, round.stage, viewer)).filter(Boolean),
       progress: roundProgress(
@@ -268,18 +302,18 @@ export function createApi({ store, requireUser, requireAdmin }) {
   // ---- presents ----
 
   api.post('/rounds/:roundId/presents', async (req, res) => {
-    const user = currentUser(res);
-    const { round, family } = await roundAccess(param(req, 'roundId'), user);
+    const { round, family, isManager } = await roundAccess(param(req, 'roundId'), currentUser(res));
+    const actor = await actorFor(req, res, family.id, isManager);
     if (round.stage !== 'giving') throw new HttpError(409, 'Presents can only be added while the round is giving.');
     const input = schemas.newPresent.parse(req.body);
-    if (input.receiverUid === user.uid) throw new HttpError(400, "You can't give a present to yourself.");
+    if (input.receiverUid === actor.uid) throw new HttpError(400, "You can't give a present to yourself.");
     if ((await store.getMembership(family.id, input.receiverUid))?.status !== 'member') {
       throw new HttpError(400, 'The receiver must be in this family.');
     }
     const present = await store.createPresent({
       roundId: round.id,
       familyId: family.id,
-      giverUid: user.uid,
+      giverUid: actor.uid,
       receiverUid: input.receiverUid,
       name: input.name,
       description: input.description,
@@ -287,23 +321,24 @@ export function createApi({ store, requireUser, requireAdmin }) {
       guessUid: null,
       revealedAt: null,
     });
-    res.status(201).json(projectPresent(present, round.stage, viewerOf(res)));
+    res.status(201).json(projectPresent(present, round.stage, actor));
   });
 
   /**
    * Shared path for present updates: the caller must still be in the family,
    * and the rules are checked inside the transaction.
    *
+   * @param {import('express').Request} req
    * @param {Response} res
    * @param {string} presentId
    * @param {'edit' | 'guess' | 'reveal'} action
    * @param {(present: import('../game/rules.js').Present) => Partial<import('../game/rules.js').Present>} patch
    */
-  async function changePresent(res, presentId, action, patch) {
-    const viewer = viewerOf(res);
+  async function changePresent(req, res, presentId, action, patch) {
     const existing = await store.getPresent(presentId);
     if (!existing) throw new HttpError(404, 'That present was not found.');
-    await familyAccess(existing.familyId, currentUser(res));
+    const { isManager } = await familyAccess(existing.familyId, currentUser(res));
+    const viewer = await actorFor(req, res, existing.familyId, isManager);
     const { present, round } = await store.updatePresent(presentId, (current, currentRound) => {
       const refusal = presentActionError(action, current, currentRound.stage, viewer);
       if (refusal) throw new HttpError(403, refusal);
@@ -314,7 +349,7 @@ export function createApi({ store, requireUser, requireAdmin }) {
 
   api.patch('/presents/:presentId', async (req, res) => {
     const edit = schemas.presentEdit.parse(req.body);
-    await changePresent(res, param(req, 'presentId'), 'edit', () => edit);
+    await changePresent(req, res, param(req, 'presentId'), 'edit', () => edit);
   });
 
   api.put('/presents/:presentId/guess', async (req, res) => {
@@ -322,28 +357,30 @@ export function createApi({ store, requireUser, requireAdmin }) {
     const presentId = param(req, 'presentId');
     const present = await store.getPresent(presentId);
     if (!present) throw new HttpError(404, 'That present was not found.');
+    const { isManager } = await familyAccess(present.familyId, currentUser(res));
+    const actor = await actorFor(req, res, present.familyId, isManager);
     if (guessUid !== null) {
-      if (guessUid === currentUser(res).uid) throw new HttpError(400, "You can't guess yourself.");
+      if (guessUid === actor.uid) throw new HttpError(400, "You can't guess yourself.");
       if ((await store.getMembership(present.familyId, guessUid))?.status !== 'member') {
         throw new HttpError(400, 'Guess someone in this family.');
       }
     }
     await store.consumeRateLimit(`guess:${currentUser(res).uid}`, 60, 60 * 60_000);
-    await changePresent(res, presentId, 'guess', () => ({ guessUid }));
+    await changePresent(req, res, presentId, 'guess', () => ({ guessUid }));
   });
 
   api.post('/presents/:presentId/reveal', async (req, res) => {
-    await changePresent(res, param(req, 'presentId'), 'reveal', (present) => ({
+    await changePresent(req, res, param(req, 'presentId'), 'reveal', (present) => ({
       revealedAt: present.revealedAt ?? new Date().toISOString(),
     }));
   });
 
   api.delete('/presents/:presentId', async (req, res) => {
-    const viewer = viewerOf(res);
     const presentId = param(req, 'presentId');
     const existing = await store.getPresent(presentId);
     if (!existing) throw new HttpError(404, 'That present was not found.');
-    if (!viewer.isAdmin) await familyAccess(existing.familyId, currentUser(res));
+    const { isManager } = await familyAccess(existing.familyId, currentUser(res));
+    const viewer = await actorFor(req, res, existing.familyId, isManager);
     await store.deletePresent(presentId, (present, round) => {
       const refusal = presentActionError('delete', present, round.stage, viewer);
       if (refusal) throw new HttpError(403, refusal);

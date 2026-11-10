@@ -1,4 +1,4 @@
-import { createHash, randomInt } from 'node:crypto';
+import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { HttpError } from '../http.js';
 
 /**
@@ -8,7 +8,8 @@ import { HttpError } from '../http.js';
  * Collections:
  *   users/{uid}                      { email, displayName, role: 'user'|'admin', disabled, createdAt }
  *   families/{id}                    { name, joinCode, createdAt }
- *   memberships/{familyId}_{uid}     { familyId, uid, status: 'pending'|'member', familyRole: 'member'|'manager', createdAt }
+ *   memberships/{familyId}_{uid}     { familyId, uid, status: 'pending'|'member', familyRole: 'member'|'manager', createdAt,
+ *                                      kind?: 'guest', displayName? }  (guests: uid 'guest-…', no account)
  *   rounds/{id}                      { familyId, name, stage, createdAt }
  *   presents/{id}                    { roundId, familyId, giverUid, receiverUid, name, description, cloakedName, guessUid, revealedAt, createdAt }
  *   rateLimits/{sha256(key)}         { count, windowStart }
@@ -20,7 +21,8 @@ import { HttpError } from '../http.js';
  * @typedef {import('../game/rules.js').Stage} Stage
  * @typedef {{ uid: string, email: string, displayName: string, role: 'user' | 'admin', disabled: boolean, createdAt: string }} User
  * @typedef {{ id: string, name: string, joinCode: string, createdAt: string }} Family
- * @typedef {{ familyId: string, uid: string, status: 'pending' | 'member', familyRole: 'member' | 'manager', createdAt: string }} Membership
+ * @typedef {{ familyId: string, uid: string, status: 'pending' | 'member', familyRole: 'member' | 'manager', createdAt: string, kind?: 'guest', displayName?: string }} Membership
+ *   Guests (kind 'guest') are players without an account; their uid is 'guest-…' and managers play for them.
  * @typedef {{ id: string, familyId: string, name: string, stage: Stage, createdAt: string }} Round
  */
 
@@ -205,6 +207,26 @@ export function createStore(db) {
       /** @type {Membership} */
       const membership = { familyId, uid, status: 'member', familyRole, createdAt: now() };
       await membershipRef(familyId, uid).set(membership);
+      return membership;
+    },
+
+    /**
+     * Add a player who has no account. Family managers play for them.
+     * @param {string} familyId @param {string} displayName @returns {Promise<Membership>}
+     */
+    async addGuest(familyId, displayName) {
+      const uid = `guest-${randomBytes(10).toString('hex')}`;
+      /** @type {Membership} */
+      const membership = {
+        familyId,
+        uid,
+        status: 'member',
+        familyRole: 'member',
+        kind: 'guest',
+        displayName,
+        createdAt: now(),
+      };
+      await membershipRef(familyId, uid).create(membership);
       return membership;
     },
 

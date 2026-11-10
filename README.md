@@ -51,7 +51,7 @@ CI (`.github/workflows/ci.yml`) runs all of the above plus `npm audit`, dependen
 - **Config:** `SUPABASE_URL` and `SUPABASE_ANON_KEY` come from the Secret Manager secrets `SUPABASE_URL` and `SUPABASE_KEY`.
 - **Health:** `GET /api/health`.
 
-Phase 5 of the overhaul replaces the trigger with a GitHub Actions deploy (Workload Identity Federation → Cloud Build → Cloud Run, health-checked), following the rosemont-club pattern.
+**Next:** `.github/workflows/deploy.yml` (Workload Identity Federation → Cloud Build → Cloud Run, health-checked, following rosemont-club) replaces the trigger at the cutover. Until then it is off (`DEPLOY_ENABLED`). See [docs/cutover.md](docs/cutover.md).
 
 ## Docker
 
