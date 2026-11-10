@@ -5,10 +5,10 @@ export default [
   { ignores: ['node_modules/', 'output/', 'coverage/'] },
   js.configs.recommended,
   {
-    files: ['**/*.js'],
+    files: ['**/*.{js,mjs}'],
     languageOptions: { ecmaVersion: 2024, sourceType: 'module', globals: globals.node },
     rules: {
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_', caughtErrors: 'none' }],
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none' }],
       eqeqeq: ['error', 'always'],
       'prefer-const': 'error',
     },

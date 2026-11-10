@@ -73,7 +73,7 @@ Findings, gathered read-only with `gcloud` and the project-b REST API:
 - project-b holds real data: 4 auth users (all confirmed; one signed in 2026-11-10), 4 profiles (1 admin, 1 manager, 2 users), 3 families, 5 people, 4 gift rounds (1 complete, 1 guessing, 2 giving) and 12 presents. Operator's note "no users found for project-b" is wrong, so the phase 5 migration is required and project-b must stay up until then.
 - Still to do: record this in operator `playbooks/authentication.md` and `inventory/gcp-personal.md`.
 
-### Phase 1: Repo and tooling foundation — this PR
+### Phase 1: Repo and tooling foundation — done (direwolfvm/santa-pack#106, deployed 2026-11-10)
 
 Scoped so the live Supabase app keeps working (see the trigger above):
 
@@ -86,33 +86,57 @@ Scoped so the live Supabase app keeps working (see the trigger above):
 - Removed `.mcp.json`, which pointed at a Supabase Cloud project the app no longer uses. `EVALUATION.md` moved to `docs/evaluation-2026-08.md`.
 - Deferred to phase 2 (where the replacement code lands): the Firebase layout (`firebase/`, `scripts/`, `tests/integration`) and removing the Supabase code and migration.
 
-### Phase 2: Server on Firebase Admin
+### Phase 2: Server on Firebase Admin — this PR
 
-- `server/firebase.js` is ported from rosemont `lib/firebase.ts`:
-  - `applicationDefault()`, a named Firestore database (`FIRESTORE_DATABASE=santa-pack`), and `tenantManager().authForTenant(FIREBASE_TENANT_ID)`.
-  - Both are required env vars: no hardcoded fallbacks, and the app fails at startup if either is missing.
-  - The emulator is used automatically when `FIRESTORE_EMULATOR_HOST` / `FIREBASE_AUTH_EMULATOR_HOST` are set.
-- `server/auth.js` is ported from rosemont `lib/auth.ts` (`viewer` / `requireUser` / `requireAdmin` with `HttpError`):
-  - It takes a Bearer token and calls `verifyIdToken(token, true)`. A missing or bad token is 401.
-  - It loads `users/{uid}` in a transaction, creating it on first call; `disabled` is 403. Roles are re-read every request, with no custom claims.
-  - **(beyond rosemont)** It rejects tokens without `email_verified` (403, with a "check your email" message).
-  - It adds `requireFamilyRole('member'|'manager')`, which returns 403.
-- `server/http.js` holds the Express equivalent of rosemont's `route()` wrapper: `HttpError` → its status, `ZodError` → 400, anything else → 500, logging only the error type. Every API response sends `Cache-Control: private, no-store` and `Vary: Authorization`.
-- Routes, rewritten as thin handlers over a `server/game/` domain module:
-  - `families`: create (admin), join by code (→ pending), approve or remove (manager), list mine.
-  - `rounds`: create, stage change (manager), delete (admin).
-  - `presents`: create or edit or delete (giver, `giving` stage only), guess (receiver, `guessing` stage only), reveal (receiver), and a list filtered through `visibility.js`.
-  - `admin`: users, roles, delete.
-- Firestore transactions for stage changes and reveal. Validate input with `zod`. Send generic error messages to clients and log details on the server.
-- Hardening:
-  - Port rosemont `lib/origin.ts` for writes: `Origin` must be in `APP_BASE_URL` / `APP_ADDITIONAL_ORIGINS`, JSON content type is required (415 otherwise), and bodies are capped at 80 KB (413).
-  - Use rosemont's durable Firestore `rateLimits/{sha256}` transaction for writes, join and guess. Firebase covers sign-in and sign-up.
-  - Record an `audit` collection for admin and stage changes.
-  - Use `helmet` with rosemont's headers, plus **(beyond rosemont)** a strict CSP (`script-src 'self'` plus the Google Identity endpoints) and HSTS.
-  - Set `trust proxy` for Cloud Run.
-  - `/api/health` answers before auth, as rosemont's does.
-- `firebase/firestore.rules` is rosemont's deny-all (`match /{document=**} { allow read, write: if false; }`). `firebase.json` targets the `santa-pack` database.
-- `scripts/seed-admin.mjs` follows rosemont `scripts/seed.ts`: it takes the email as an argument, is idempotent, and never re-grants admin rights that were revoked. There is no "first sign-up wins".
+**Why it sits alongside Supabase:** every merge to `main` deploys, and the current pages only speak Supabase. So the Firebase backend runs only when `BACKEND=firebase`. Production keeps the default (`supabase`) until the phase 5 cutover.
+
+**Firebase layout:** santa-pack gets its own Identity Platform tenant (`santa-pack`) and its own Firestore database (`santa-pack`) in `hopeful-machine-466912-t2`. The `framblywish` app (wish.santapack.me) already uses that project, with its own tenant and database. This is operator's "one tenant per app in a shared project" pattern: users, data and rules stay separate, and no new project is needed. Nothing is created in GCP until phase 5.
+
+**What was built:**
+
+| File                       | What it does                                                                                                                                                                                   |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server/config.js`         | Validates the environment with zod for each backend. Missing settings are named without their values being printed.                                                                            |
+| `server/firebase/admin.js` | Uses ADC, the named database and a tenant-scoped Auth. Uses the emulators when their env vars are set.                                                                                         |
+| `server/firebase/auth.js`  | `requireUser` (Bearer token → `verifyIdToken(token, true)` → **verified email required** → `users/{uid}` created on first call → `disabled` is 403) and `requireAdmin`.                        |
+| `server/game/rules.js`     | Pure functions: `projectPresent` (who sees which fields, by stage), `presentActionError` (edit, delete, guess, reveal), `canMoveStage` (one step at a time) and `roundProgress` (counts only). |
+| `server/firebase/store.js` | Firestore access. Present updates and deletes, and stage changes, run in transactions that re-check the rules. Also holds the durable `rateLimits` and the `audit` log.                        |
+| `server/firebase/api.js`   | The routes below. Non-members get 404, not 403, so family ids can't be probed.                                                                                                                 |
+| `server/http.js`           | `HttpError`, zod errors → 400, and a generic 500.                                                                                                                                              |
+| `server/security.js`       | helmet with a strict CSP and HSTS, plus the origin and JSON check for writes.                                                                                                                  |
+| `server/firebase/app.js`   | `/api/health` and `/api/config` before auth. `no-store` on the API.                                                                                                                            |
+| `firebase/firestore.rules` | Deny all.                                                                                                                                                                                      |
+| `firebase.json`            | Emulator config.                                                                                                                                                                               |
+| `scripts/seed-admin.mjs`   | Makes an existing account an admin by email. It's the only way to create one.                                                                                                                  |
+
+**API** (all JSON, all behind sign-in). Phase 3 builds the pages on this:
+
+| Route                                                                                                                                                       | Who                                            |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `GET /api/me`, `PATCH /api/me {displayName}`                                                                                                                | Anyone signed in                               |
+| `POST /api/families/join {code}` → pending                                                                                                                  | Anyone signed in (rate-limited to 10 per hour) |
+| `GET /api/families/:id` → family, members, rounds (plus join code and pending list for managers)                                                            | Members                                        |
+| `POST /api/families {name}`, `DELETE /api/families/:id`                                                                                                     | Admin                                          |
+| `POST /api/families/:id/join-code` (rotate), `POST …/members/:uid/approve`, `PATCH …/members/:uid {familyRole}`                                             | Manager                                        |
+| `DELETE …/members/:uid`                                                                                                                                     | Manager, or the person themselves              |
+| `POST /api/families/:id/rounds {name}`, `PATCH /api/rounds/:id {stage}`                                                                                     | Manager                                        |
+| `DELETE /api/rounds/:id`                                                                                                                                    | Admin                                          |
+| `GET /api/rounds/:id` → round, members, projected presents, progress                                                                                        | Members                                        |
+| `POST /api/rounds/:id/presents`, `PATCH /api/presents/:id` (giving stage), `DELETE /api/presents/:id` (giving stage; admins any time)                       | Giver                                          |
+| `PUT /api/presents/:id/guess {guessUid}`, `POST /api/presents/:id/reveal` (guessing stage; reveal is one-way)                                               | Receiver                                       |
+| `GET /api/admin/users`, `PATCH /api/admin/users/:uid {role, disabled}`, `GET /api/admin/families`, `POST /api/admin/families/:id/members {uid, familyRole}` | Admin                                          |
+
+**Tests:**
+
+- `tests/unit/rules.test.js` and `config.test.js`: table-driven, no emulator.
+- `tests/integration/*.test.js`, run with `npm run test:integration` (emulators, `demo-santa-pack`, a fresh tenant per file). They cover:
+  - 401 for a missing or forged token; 403 for an unverified email, a disabled account, the wrong role, the wrong stage, or a write from another origin; 415 for a non-JSON write.
+  - Non-members get 404.
+  - Secrecy: the receiver's and manager's responses never contain the present name or description.
+  - Deny-all Firestore rules, checked against an emulator admin-token control.
+- CI runs them in a new `integration` job on Java 21.
+
+**Not done here:** the old Supabase code and migration are still present. They go at cutover, in phase 5.
 
 ### Phase 3: Frontend on Vite (after phase 2)
 

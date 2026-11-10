@@ -10,13 +10,15 @@ A family gift-exchange game at [santapack.me](https://santapack.me). Families ru
 
 ## Architecture (today)
 
-| Path                   | What it is                                                                                                                                                                    |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `server/`              | Express 5 API (`/api/families`, `/api/presents`, `/api/health`) and static file server. `index.js` reads config and starts the app; `app.js` builds it from injected routers. |
-| `web/`                 | Static HTML pages with classic scripts. The browser signs in with Supabase Auth and calls the API with its access token (`web/api.js`).                                       |
-| `supabase/migrations/` | A schema and RLS baseline reconstructed from the code. It was **never reconciled** with the live database.                                                                    |
-| `tests/unit/`          | `node:test` + supertest.                                                                                                                                                      |
-| `tests/e2e/`           | Playwright (desktop and mobile Chromium) with the Supabase SDK stubbed, so it needs no backend.                                                                               |
+| Path                               | What it is                                                                                                                                                                                                                      |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server/`                          | Express 5 API (`/api/families`, `/api/presents`, `/api/health`) and static file server. `index.js` reads config and starts the app; `app.js` builds it from injected routers.                                                   |
+| `web/`                             | Static HTML pages with classic scripts. The browser signs in with Supabase Auth and calls the API with its access token (`web/api.js`).                                                                                         |
+| `supabase/migrations/`             | A schema and RLS baseline reconstructed from the code. It was **never reconciled** with the live database.                                                                                                                      |
+| `server/firebase/`, `server/game/` | The new backend, used when `BACKEND=firebase`: Firebase Auth tokens verified on the server, Firestore behind deny-all rules (`firebase/firestore.rules`), and the game's secrecy rules in `server/game/rules.js`. Not live yet. |
+| `tests/unit/`                      | `node:test` + supertest.                                                                                                                                                                                                        |
+| `tests/integration/`               | The Firebase API against the Auth and Firestore emulators (needs Java 21).                                                                                                                                                      |
+| `tests/e2e/`                       | Playwright (desktop and mobile Chromium) with the Supabase SDK stubbed, so it needs no backend.                                                                                                                                 |
 
 ## Local development
 
@@ -32,6 +34,7 @@ npm run dev            # http://localhost:8080, restarts on change
 
 ```sh
 npm run check          # lint, format check, typecheck, unit tests
+npm run test:integration  # Firebase API against the emulators (Java 21)
 npm run test:e2e       # Playwright; run `npx playwright install chromium` once first
 npm run format         # apply Prettier
 ```
