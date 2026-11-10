@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// Clients never read or write Firestore directly. All access goes through the
+// Santa Pack server, which checks permissions and the game rules.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
