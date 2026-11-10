@@ -86,7 +86,7 @@ Scoped so the live Supabase app keeps working (see the trigger above):
 - Removed `.mcp.json`, which pointed at a Supabase Cloud project the app no longer uses. `EVALUATION.md` moved to `docs/evaluation-2026-08.md`.
 - Deferred to phase 2 (where the replacement code lands): the Firebase layout (`firebase/`, `scripts/`, `tests/integration`) and removing the Supabase code and migration.
 
-### Phase 2: Server on Firebase Admin — this PR
+### Phase 2: Server on Firebase Admin — done (direwolfvm/santa-pack#108, deployed 2026-11-10)
 
 **Why it sits alongside Supabase:** every merge to `main` deploys, and the current pages only speak Supabase. So the Firebase backend runs only when `BACKEND=firebase`. Production keeps the default (`supabase`) until the phase 5 cutover.
 
@@ -138,18 +138,53 @@ Scoped so the live Supabase app keeps working (see the trigger above):
 
 **Not done here:** the old Supabase code and migration are still present. They go at cutover, in phase 5.
 
-### Phase 3: Frontend on Vite (after phase 2)
+### Phase 3: Frontend on Vite — this PR
 
-- Vite multi-page build. Keep the existing pages, styles, snow and copy, and move every inline script into `web/src/pages/*.js`.
-- Shared modules:
-  - `auth.js` (Firebase Auth: sign in, sign up with email verification, reset, sign out, `onAuthStateChanged` guard).
-  - `api.js` (fetch wrapper adding the ID token, typed errors).
-  - `dom.js` (only `textContent`/`createElement` builders, plus a lint rule banning `innerHTML`).
-  - `dialog.js` (accessible `<dialog>` replacing `alert`/`prompt`/`confirm`).
-  - `status.js` (live-region announcements, loading states).
-- Firebase JS SDK comes from npm and is bundled. No CDN scripts. Public Firebase config is served by `/config.js` or injected at build time.
-- The guessing page renders only what the API returns. Nothing secret reaches the DOM before a reveal.
-- Remove client-side role checks that pretend to be security; they stay only as UX redirects.
+**Lives beside the old pages:** `app/` is a new Vite multi-page app built to `dist/`. The server serves it only when `BACKEND=firebase`. Production (`BACKEND=supabase`) keeps serving `web/` unchanged until the phase 5 cutover.
+
+**Seven pages in place of fifteen.** The old per-stage pages (`giftRounds`, `people`, `person`, `presents`, `guesses`, the three `summary-*` pages, `manageFamily`, `createPerson`, `reset-password`) fold into:
+
+| Page           | What's on it                                                                                                                                                                                                               |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `login.html`   | Sign in, sign up (name + email verification), and a reset email that gives the same message whether or not the account exists.                                                                                             |
+| `verify.html`  | Waits for the email link, then refreshes the token so the server sees `email_verified`.                                                                                                                                    |
+| `index.html`   | Your families, pending requests, and joining by code.                                                                                                                                                                      |
+| `family.html`  | Rounds and members. For managers: the join code, approvals, roles, removals and new rounds. Anyone can leave.                                                                                                              |
+| `round.html`   | One page for every stage, rendered from what the server sends: giving (your gifts, add and edit), guessing (cloaked cards, guess, unwrap), complete (every gift plus the best guessers). Managers also get stage controls. |
+| `profile.html` | Display name, and a password reset email.                                                                                                                                                                                  |
+| `admin.html`   | Families (create, delete, join codes, add someone directly) and accounts (admin role, turn off).                                                                                                                           |
+
+**Shared modules** in `app/src/lib/`:
+
+- `firebase.js`: web config from `/api/config`, tenant ID, and the Auth emulator when the server says so.
+- `api.js`: adds the ID token and turns errors into messages people can read.
+- `dom.js`: an `h()` builder that only ever sets `textContent`, plus `safeNextPath`.
+- `ui.js`: a `<dialog>` confirm, a live-region toast, busy buttons, tables.
+- `shell.js`: the page frame and navigation, plus a sign-in guard.
+
+**Rules this enforces:**
+
+- Lint makes `innerHTML`, `outerHTML` and `insertAdjacentHTML` an error in `app/`.
+- No CDN scripts. The Firebase SDK is bundled (29 KB gzipped).
+- The server's CSP (`script-src 'self'`) holds with no violations; the e2e test checks the console.
+
+**Secrecy fix found while building this.** The phase 2 round progress showed per-person giving and receiving counts, which pair givers with receivers in small families. `roundProgress` now returns:
+
+- while giving: each person's number of gifts wrapped;
+- while guessing: round totals only;
+- once complete: everything.
+
+The unit and integration tests assert this.
+
+**Tests:** `tests/e2e-firebase/game.spec.js` (run with `npm run test:e2e:firebase`, which uses the emulators and a fixed `santa-e2e` tenant) covers:
+
+- sign-up → verify → home, on desktop and mobile;
+- the wrong-password message;
+- a whole round with four people: admin creates the family → join by code → approval → manager role → round → gift → guessing → guess → unwrap → reveal.
+
+While guessing, the test records every API response the receiver's browser gets and asserts none contains the gift name. As a control, the same watcher must then see it after unwrapping. CI runs this in the emulator job.
+
+**Emulator ports:** 9399 (Auth) and 8389 (Firestore), so they don't collide with other projects' emulators on the default ports.
 
 ### Phase 4: Tests and CI (after phase 2; can run alongside phase 3)
 

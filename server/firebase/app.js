@@ -5,7 +5,8 @@ import { requireSameOriginJson, securityHeaders } from '../security.js';
 import { createApi } from './api.js';
 import { createAuth } from './auth.js';
 
-const webRoot = fileURLToPath(new URL('../../web', import.meta.url));
+// The Vite build of app/ (npm run build).
+const webRoot = fileURLToPath(new URL('../../dist', import.meta.url));
 
 /**
  * The Firebase-backed app: Firebase Auth ID tokens, Firestore behind deny-all
@@ -23,13 +24,17 @@ export default function createFirebaseApp({ store, auth, webConfig, allowedOrigi
   app.disable('x-powered-by');
   // Cloud Run puts one proxy in front of the app.
   app.set('trust proxy', 1);
-  app.use(securityHeaders());
+  // Local development and e2e tests: let the browser SDK reach the Auth emulator.
+  const authEmulatorUrl = process.env.FIREBASE_AUTH_EMULATOR_HOST
+    ? `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}`
+    : undefined;
+  app.use(securityHeaders({ extraConnectSrc: authEmulatorUrl ? [authEmulatorUrl] : [] }));
 
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok' });
   });
   app.get('/api/config', (_req, res) => {
-    res.set('Cache-Control', 'no-cache').json(webConfig);
+    res.set('Cache-Control', 'no-cache').json(authEmulatorUrl ? { ...webConfig, authEmulatorUrl } : webConfig);
   });
 
   const { requireUser, requireAdmin } = createAuth({ auth, store });
@@ -41,7 +46,9 @@ export default function createFirebaseApp({ store, auth, webConfig, allowedOrigi
     createApi({ store, requireUser, requireAdmin }),
   );
 
-  app.use(express.static(webRoot));
+  // Hashed asset files can be cached for a long time; pages must revalidate.
+  app.use('/assets', express.static(`${webRoot}/assets`, { immutable: true, maxAge: '365d', fallthrough: false }));
+  app.use(express.static(webRoot, { extensions: ['html'] }));
   app.use(errorHandler);
   return app;
 }

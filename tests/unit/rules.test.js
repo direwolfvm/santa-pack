@@ -75,16 +75,23 @@ test('revealing shows the receiver everything and scores the guess', () => {
   assert.equal(full.correct, true);
 });
 
-test('progress counts expose no pairings', () => {
+test('progress never pairs givers with receivers before the reveal', () => {
   const presents = [present, { ...present, id: 'p2', giverUid: 'cousin', guessUid: 'giver' }];
-  const progress = roundProgress(presents, ['giver', 'receiver', 'cousin']);
-  assert.deepEqual(progress, [
-    { uid: 'giver', giving: 1, receiving: 0, guessed: 0, revealed: 0 },
-    { uid: 'receiver', giving: 0, receiving: 2, guessed: 1, revealed: 0 },
-    { uid: 'cousin', giving: 1, receiving: 0, guessed: 0, revealed: 0 },
+  const members = ['giver', 'receiver', 'cousin'];
+
+  const giving = roundProgress(presents, members, 'giving');
+  assert.deepEqual(giving.people, [
+    { uid: 'giver', giving: 1 },
+    { uid: 'receiver', giving: 0 },
+    { uid: 'cousin', giving: 1 },
   ]);
-  for (const row of progress)
-    assert.deepEqual(Object.keys(row).sort(), ['giving', 'guessed', 'receiving', 'revealed', 'uid']);
+  for (const row of giving.people) assert.deepEqual(Object.keys(row).sort(), ['giving', 'uid']);
+
+  const guessing = roundProgress(presents, members, 'guessing');
+  assert.deepEqual(guessing, { totals: { presents: 2, guessed: 1, revealed: 0 }, people: [] });
+
+  const complete = roundProgress(presents, members, 'complete');
+  assert.deepEqual(complete.people[1], { uid: 'receiver', giving: 0, receiving: 2, guessedRight: 0 });
 });
 
 test('present actions by role and stage', () => {

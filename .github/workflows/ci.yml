@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   checks:
-    name: Lint, typecheck, unit tests and audit
+    name: Lint, typecheck, unit tests, build and audit
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -32,13 +32,14 @@ jobs:
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm test
+      - run: npm run build
       - name: Audit dependencies
         run: npm audit --omit=dev --audit-level=high
 
   integration:
-    name: Integration tests (Firebase emulators)
+    name: Firebase API and app (emulators)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -55,6 +56,15 @@ jobs:
       - run: npm ci
       # Uses a demo- project id, so the emulators need no credentials.
       - run: npm run test:integration
+      - run: npx playwright install --with-deps chromium
+      # The Firebase frontend (app/) played end to end against the emulators.
+      - run: npm run test:e2e:firebase
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-firebase-output
+          path: output/playwright-firebase
+          retention-days: 7
 
   e2e:
     name: Playwright
@@ -102,6 +112,24 @@ jobs:
         with:
           persist-credentials: false
       - run: docker build -t santa-pack:ci .
+      # Start the image in both modes and check each serves the right frontend.
+      - name: Smoke test the image
+        run: |
+          set -euo pipefail
+          docker run -d --name supabase-mode -p 8081:8080 \
+            -e SUPABASE_URL=https://example.supabase.co -e SUPABASE_ANON_KEY=ci santa-pack:ci
+          docker run -d --name firebase-mode -p 8082:8080 \
+            -e BACKEND=firebase -e GOOGLE_CLOUD_PROJECT=demo-ci -e FIRESTORE_DATABASE=santa-pack \
+            -e FIREBASE_TENANT_ID=ci -e FIREBASE_API_KEY=ci -e FIREBASE_AUTH_DOMAIN=localhost \
+            -e APP_BASE_URL=http://localhost:8082 santa-pack:ci
+          for port in 8081 8082; do
+            for _ in $(seq 1 20); do curl -fs "http://localhost:$port/api/health" && break; sleep 1; done
+          done
+          test "$(docker exec supabase-mode whoami)" = node
+          curl -fs http://localhost:8081/login.html | grep -q 'supabase-js'
+          curl -fs http://localhost:8082/login.html | grep -q 'type="module"'
+          curl -fs http://localhost:8082/api/config | grep -q '"tenantId":"ci"'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8082/api/me)" = 401
 
   secret-scan:
     name: Secret scan

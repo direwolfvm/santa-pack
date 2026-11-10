@@ -1,0 +1,10 @@
+{
+  "name": "santa-pack-app",
+  "private": true,
+  "description": "The Santa Pack browser app (built with Vite; see vite.config.js at the repo root).",
+  "type": "module",
+  "devDependencies": {
+    "firebase": "^13.2.0",
+    "vite": "^8.3.7"
+  }
+}

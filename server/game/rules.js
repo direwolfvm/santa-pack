@@ -81,19 +81,44 @@ export function projectPresent(present, stage, viewer) {
 }
 
 /**
- * Counts anyone in the family may see, without exposing who gives what to whom.
+ * Progress anyone in the family may see. Per-person counts are cut back so
+ * they can't be lined up into "who gives to whom":
+ *
+ * - giving: how many gifts each person has wrapped (so organizers can see who
+ *   is done). Receivers can't see their gifts yet, so there is nothing to match.
+ * - guessing: round totals only. A receiver can see their own gifts now, and
+ *   per-giver counts next to that would give the game away in small families.
+ * - complete: everything, per person.
  *
  * @param {Present[]} presents
  * @param {string[]} memberUids
+ * @param {Stage} stage
  */
-export function roundProgress(presents, memberUids) {
-  return memberUids.map((uid) => ({
-    uid,
-    giving: presents.filter((p) => p.giverUid === uid).length,
-    receiving: presents.filter((p) => p.receiverUid === uid).length,
-    guessed: presents.filter((p) => p.receiverUid === uid && p.guessUid).length,
-    revealed: presents.filter((p) => p.receiverUid === uid && p.revealedAt).length,
-  }));
+export function roundProgress(presents, memberUids, stage) {
+  const totals = {
+    presents: presents.length,
+    guessed: presents.filter((p) => p.guessUid).length,
+    revealed: presents.filter((p) => p.revealedAt).length,
+  };
+  if (stage === 'guessing') return { totals, people: [] };
+  if (stage === 'giving') {
+    return {
+      totals,
+      people: memberUids.map((uid) => ({ uid, giving: presents.filter((p) => p.giverUid === uid).length })),
+    };
+  }
+  return {
+    totals,
+    people: memberUids.map((uid) => {
+      const received = presents.filter((p) => p.receiverUid === uid);
+      return {
+        uid,
+        giving: presents.filter((p) => p.giverUid === uid).length,
+        receiving: received.length,
+        guessedRight: received.filter((p) => p.guessUid && p.guessUid === p.giverUid).length,
+      };
+    }),
+  };
 }
 
 /**

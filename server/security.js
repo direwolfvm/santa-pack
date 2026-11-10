@@ -5,7 +5,8 @@ import { HttpError } from './http.js';
  * Security headers. The CSP allows scripts only from this origin; the browser
  * talks to Firebase Auth (identitytoolkit / securetoken) and this API.
  */
-export function securityHeaders() {
+/** @param {{ extraConnectSrc?: string[] }} [options] */
+export function securityHeaders({ extraConnectSrc = [] } = {}) {
   return helmet({
     contentSecurityPolicy: {
       directives: {
@@ -14,7 +15,12 @@ export function securityHeaders() {
         styleSrc: ["'self'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
         imgSrc: ["'self'", 'data:'],
-        connectSrc: ["'self'", 'https://identitytoolkit.googleapis.com', 'https://securetoken.googleapis.com'],
+        connectSrc: [
+          "'self'",
+          'https://identitytoolkit.googleapis.com',
+          'https://securetoken.googleapis.com',
+          ...extraConnectSrc,
+        ],
         frameSrc: ["'self'", 'https://*.firebaseapp.com'],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],

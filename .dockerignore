@@ -7,6 +7,7 @@
 output
 tests
 docs
+dist
 examples
 supabase
 *.md

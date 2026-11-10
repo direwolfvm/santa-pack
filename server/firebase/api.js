@@ -237,6 +237,7 @@ export function createApi({ store, requireUser, requireAdmin }) {
       progress: roundProgress(
         presents,
         members.map((m) => m.uid),
+        round.stage,
       ),
     });
   });
