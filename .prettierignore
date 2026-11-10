@@ -1,0 +1,9 @@
+node_modules/
+output/
+package-lock.json
+# The static pages are rewritten as Vite modules in phase 3 of docs/overhaul-plan.md;
+# formatting them now would only churn the diff.
+web/
+examples/
+supabase/
+docs/evaluation-2026-08.md

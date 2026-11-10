@@ -1,7 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: npm
-    directory: /christmas-present-app
+    directory: /
     schedule:
       interval: weekly
       day: monday
@@ -26,7 +26,7 @@ updates:
       # Group every action update so related steps (such as the CodeQL init
       # and analyze pair) land in one pull request.
       actions:
-        patterns: ["*"]
+        patterns: ['*']
   - package-ecosystem: docker
     directory: /
     schedule:
@@ -37,7 +37,7 @@ updates:
       default-days: 5
     groups:
       images:
-        patterns: ["*"]
+        patterns: ['*']
     ignore:
       # Majors are planned cross-app upgrade waves, not weekly PRs
       # (playbooks/dependabot.md in direwolfvm/operator). CI npm audit still catches anything hidden.
