@@ -13,7 +13,10 @@ const tenantAuth = getAuth(admin).tenantManager().authForTenant(TENANT_ID);
 const db = getFirestore(admin, 'santa-pack');
 
 const PASSWORD = 'very-merry-password';
-const SECRET = `Talkboy recorder ${randomUUID().slice(0, 6)}`;
+const RUN = randomUUID().slice(0, 6);
+const SECRET = `Talkboy recorder ${RUN}`;
+// Unique per run: the emulators keep data between repeated runs.
+const FAMILY = `The McCallisters ${RUN}`;
 const CLOAK = 'Operation Mistletoe';
 
 /** @param {string} name */
@@ -101,9 +104,9 @@ test('a whole gift round, with the gift kept secret until the reveal', async ({ 
 
   // Elf creates the family.
   await pages.elf.goto('/admin.html');
-  await pages.elf.locator('#familyName').fill('The McCallisters');
+  await pages.elf.locator('#familyName').fill(FAMILY);
   await pages.elf.getByRole('button', { name: 'Create family' }).click();
-  const familyRow = pages.elf.getByRole('row', { name: /The McCallisters/ });
+  const familyRow = pages.elf.getByRole('row', { name: new RegExp(FAMILY) });
   await expect(familyRow).toBeVisible();
   const joinCode = (await familyRow.locator('.join-code').textContent())?.trim() ?? '';
   expect(joinCode).toMatch(/^[A-Z2-9]{8}$/);
@@ -112,12 +115,12 @@ test('a whole gift round, with the gift kept secret until the reveal', async ({ 
   for (const key of /** @type {const} */ (['kate', 'peter', 'kevin'])) {
     await pages[key].locator('#joinCode').fill(joinCode);
     await pages[key].getByRole('button', { name: 'Ask to join' }).click();
-    await expect(pages[key].getByText('Waiting for approval: The McCallisters')).toBeVisible();
+    await expect(pages[key].getByText(`Waiting for approval: ${FAMILY}`)).toBeVisible();
   }
 
   // Elf lets them in and makes Kate a manager.
-  await familyRow.getByRole('link', { name: 'The McCallisters' }).click();
-  await expect(pages.elf.getByRole('heading', { name: 'The McCallisters', level: 1 })).toBeVisible();
+  await familyRow.getByRole('link', { name: FAMILY }).click();
+  await expect(pages.elf.getByRole('heading', { name: FAMILY, level: 1 })).toBeVisible();
   for (const name of ['Kate', 'Peter', 'Kevin']) {
     await pages.elf
       .getByRole('row', { name: new RegExp(name) })
@@ -199,6 +202,8 @@ test('a whole gift round, with the gift kept secret until the reveal', async ({ 
   await pages.kate.reload();
   await pages.kate.getByRole('button', { name: 'Reveal everything' }).click();
   await confirm(pages.kate, 'Reveal everything');
+  // Wait for the change to land before Peter looks (CI runners are slower).
+  await expect(pages.kate.locator('.stage-badge')).toHaveText('complete');
   await pages.peter.reload();
   const row = pages.peter.getByRole('table', { name: 'All gifts' }).getByRole('row', { name: new RegExp(SECRET) });
   await expect(row).toContainText('Peter');
