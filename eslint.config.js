@@ -2,7 +2,7 @@ import js from '@eslint/js';
 import globals from 'globals';
 
 export default [
-  { ignores: ['node_modules/', 'output/', 'coverage/'] },
+  { ignores: ['node_modules/', 'output/', 'coverage/', 'dist/'] },
   js.configs.recommended,
   {
     files: ['**/*.{js,mjs}'],
@@ -27,6 +27,24 @@ export default [
         {
           selector: "AssignmentExpression[left.property.name='innerHTML']",
           message: 'Build DOM nodes with textContent instead of innerHTML.',
+        },
+      ],
+    },
+  },
+  {
+    // The Vite frontend: browser ES modules. Build DOM with app/src/lib/dom.js.
+    files: ['app/**/*.js'],
+    languageOptions: { globals: globals.browser },
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'AssignmentExpression[left.property.name=/^(innerHTML|outerHTML)$/]',
+          message: 'Build DOM nodes with app/src/lib/dom.js (textContent), never innerHTML.',
+        },
+        {
+          selector: "CallExpression[callee.property.name='insertAdjacentHTML']",
+          message: 'Build DOM nodes with app/src/lib/dom.js (textContent), never insertAdjacentHTML.',
         },
       ],
     },

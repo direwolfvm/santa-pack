@@ -91,7 +91,8 @@ test('giving: only the giver (and site admin) can see the present', async () => 
   assert.deepEqual(await presentsSeenBy(manager), []);
 
   const progress = (await h.as(manager).get(`/api/rounds/${roundId}`)).body.progress;
-  assert.equal(progress.find((/** @type {{ uid: string }} */ p) => p.uid === giver.uid).giving, 1);
+  assert.equal(progress.people.find((/** @type {{ uid: string }} */ p) => p.uid === giver.uid).giving, 1);
+  assert.equal(progress.people[0].receiving, undefined, 'receiving counts would pair givers with receivers');
 });
 
 test('giving: guesses and reveals are refused, edits are allowed', async () => {
@@ -114,6 +115,9 @@ test('guessing: the receiver gets the cloaked name and nothing secret', async ()
   const [present] = response.body.presents;
   assert.equal(present.cloakedName, 'Operation Mistletoe');
   assert.equal(present.giverUid, undefined);
+  // Only totals while guessing, so givers can't be matched to receivers.
+  assert.deepEqual(response.body.progress.people, []);
+  assert.equal(response.body.progress.totals.presents, 1);
   // The manager is a player too and gets no peek.
   assert.ok(!JSON.stringify((await h.as(manager).get(`/api/rounds/${roundId}`)).body).includes(SECRET));
 });

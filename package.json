@@ -8,6 +8,9 @@
   "engines": {
     "node": ">=22.9"
   },
+  "workspaces": [
+    "app"
+  ],
   "scripts": {
     "start": "node server/index.js",
     "dev": "node --watch --env-file-if-exists=.env server/index.js",
@@ -17,8 +20,11 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "node --test \"tests/unit/**/*.test.js\"",
     "test:e2e": "playwright test",
-    "check": "npm run lint && npm run format:check && npm run typecheck && npm test",
-    "test:integration": "firebase emulators:exec --only auth,firestore --project demo-santa-pack \"node --test --test-concurrency=1 \\\"tests/integration/**/*.test.js\\\"\""
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm test && npm run build",
+    "test:integration": "firebase emulators:exec --only auth,firestore --project demo-santa-pack \"node --test --test-concurrency=1 \\\"tests/integration/**/*.test.js\\\"\"",
+    "build": "vite build",
+    "dev:web": "vite",
+    "test:e2e:firebase": "npm run build && firebase emulators:exec --only auth,firestore --project demo-santa-pack \"playwright test -c playwright.firebase.config.js\""
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",
