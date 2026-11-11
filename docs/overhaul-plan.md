@@ -212,7 +212,7 @@ While guessing, the test records every API response the receiver's browser gets 
   - Dependabot auto-merge job
 - Keep `codeql.yml`. Dependabot config stays as is, with the npm directory updated to `/`.
 
-### Phase 5: Firebase setup, migration, cutover — in progress
+### Phase 5: Firebase setup, migration, cutover — done 2026-11-11 (direwolfvm/santa-pack#110; see [cutover.md](cutover.md))
 
 **Done:** the Firebase resources, IAM and GitHub OIDC (listed in [cutover.md](cutover.md)), the rehearsal migration, and these repo changes (this PR):
 
@@ -235,7 +235,7 @@ While guessing, the test records every API response the receiver's browser gets 
 
 **Rehearsal:** a separate `santa-pack-preview` service runs Firebase mode on the migrated data. It isn't a no-traffic revision of `santa-pack`, because that would make Firebase mode the service template, and the old trigger's next deploy would put it live.
 
-**Remaining:** the cutover itself, following [cutover.md](cutover.md).
+**Cutover:** done 2026-11-11. santapack.me runs Firebase mode, deployed by `deploy.yml`, and the old trigger is disabled. **Remaining:** the legacy cleanup in cutover.md step 7 (remove `web/` and the Supabase code, delete `santa-pack-preview`, retire project-b).
 
 ## Critical files
 
