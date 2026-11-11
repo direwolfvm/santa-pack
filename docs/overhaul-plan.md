@@ -138,7 +138,7 @@ Scoped so the live Supabase app keeps working (see the trigger above):
 
 **Not done here:** the old Supabase code and migration are still present. They go at cutover, in phase 5.
 
-### Phase 3: Frontend on Vite — this PR
+### Phase 3: Frontend on Vite — done (direwolfvm/santa-pack#109, deployed 2026-11-10)
 
 **Lives beside the old pages:** `app/` is a new Vite multi-page app built to `dist/`. The server serves it only when `BACKEND=firebase`. Production (`BACKEND=supabase`) keeps serving `web/` unchanged until the phase 5 cutover.
 
@@ -212,35 +212,30 @@ While guessing, the test records every API response the receiver's browser gets 
   - Dependabot auto-merge job
 - Keep `codeql.yml`. Dependabot config stays as is, with the npm directory updated to `/`.
 
-### Phase 5: Firebase project, data migration, deploy (needs your GCP and Firebase access)
+### Phase 5: Firebase setup, migration, cutover — in progress
 
-- **Infra, one time**, not run by CI:
-  - Port rosemont `scripts/provision.py`: it is idempotent, finds the web app config, adds authorized domains, grants the runtime SA `datastore.user` (conditioned on the `santa-pack` database), `firebaseauth.viewer` and `identityplatform.viewer`, and writes `.env.local` and `deploy-env.yaml`.
-  - Port `scripts/deploy-rules.py`, which publishes the rules through the Rules REST API.
-  - Document the WIF and deployer setup in `docs/CI-CD.md`, following rosemont's.
-  - The pieces it sets up:
-  - Identity Platform tenant `santa-pack` in the shared Firebase project rosemont uses (or its own project, if operator's open question on project naming says so).
-  - Email/password with verification. Authorized domain santapack.me. Optional Google provider.
-  - Firestore database. `santa-pack-deployer` and `santa-pack-runtime` service accounts, with the deployer bound to the GitHub WIF provider for this repo only.
-  - Secrets in Secret Manager as `SANTA_PACK_*`, if any are needed. The Firebase web config is public, so it goes in `deploy-env.yaml`.
-  - Decide whether to move the service out of the misleadingly named `hopeful-machine-466912-t2` into `permitting-ai-helper`, following the operator playbook.
-- **Migration script** `scripts/migrate-from-supabase.mjs`. It is a dry run by default and runs from the laptop with a project-b database URL that is never committed:
-  - Exports `auth.users` with bcrypt hashes and imports them with `admin.auth().importUsers(..., { hash: { algorithm: 'BCRYPT' } })`, keeping the same passwords and marking email verified where Supabase had confirmed it.
-  - Maps `profiles.role` admin → `users.role`, and manager → `familyRole: manager` on their memberships.
-  - Copies families, people (→ memberships), rounds and presents, rewriting ids to uids.
-  - Prints counts before and after. If phase 0 finds no users, skip it.
-- **Deploy**, copied from rosemont-club:
-  - `.github/workflows/deploy.yml`: on push to `main` and `workflow_dispatch`, in a `production` environment limited to `main`. It re-runs tests, authenticates with WIF, runs `gcloud builds submit` with `cloudbuild.yaml`, and tags the image with `$BUILD_ID`.
-  - Cloud Run settings: runtime SA, `deploy-env.yaml`, a startup probe on `/api/health`, and explicit instances, memory and concurrency.
-  - A post-deploy curl of `https://santapack.me/api/health`.
-  - Cloud Run flags as rosemont's `cloudbuild.yaml`: `--min-instances=0 --max-instances=3 --memory=512Mi --concurrency=40 --timeout=60`, the startup probe on `/api/health`, and `--gcs-source-staging-dir`.
-  - The post-deploy check reads `latestReadyRevisionName`, then curls the health URL with 12 retries.
-  - Deploy `firestore.rules` as an explicit step with `deploy-rules.py`.
-- **Dockerfile**: multi-stage `node:22-bookworm-slim`. The build stage runs `vite build`. The runtime stage has prod deps only, `USER node`, and `CMD ["node","server/index.js"]`.
-- **Cutover:**
-  - Freeze writes (a short banner), then run the migration.
-  - Deploy, smoke-test sign-in with a migrated account, and delete the old Cloud Build trigger.
-  - Update operator's inventory and authentication playbook rows for santa-pack, and mark project-b free to retire if nothing else uses it.
+**Done:** the Firebase resources, IAM and GitHub OIDC (listed in [cutover.md](cutover.md)), the rehearsal migration, and these repo changes (this PR):
+
+- **Guest players:** people without an account, whom family managers play for. The old app had them, and 2 of the 5 people in the live data are guests. They're memberships with `kind: 'guest'` and a `guest-…` id.
+  - Managers add them with `POST /api/families/:id/guests`.
+  - Managers act for them with `?as=<guestId>` on round and present calls.
+  - The server allows acting only for guests in a family the caller manages. It never lets anyone act as another account, and acting as a guest drops admin visibility.
+  - Covered by `tests/integration/guests.test.js` and a Playwright test.
+- **`scripts/migrate-from-supabase.mjs`:**
+  - Dry run by default. It reads Postgres in a read-only transaction.
+  - Accounts keep their uid and bcrypt hash, so their passwords still work. That was checked with a throwaway account: the right password gives 200, a wrong one 400.
+  - People without accounts become guests.
+  - Document ids are deterministic, so re-running is safe.
+- **`scripts/deploy-rules.mjs`** (a port of rosemont's `deploy-rules.py`).
+- **Deploy pipeline:**
+  - `.github/workflows/deploy.yml`, off until `DEPLOY_ENABLED=true`.
+  - `cloudbuild.yaml` and `deploy-env.yaml`, with no secrets; `--clear-secrets` drops the Supabase ones.
+  - `.gitleaks.toml` allows only the project's public web key.
+  - `.gcloudignore`.
+
+**Rehearsal:** a separate `santa-pack-preview` service runs Firebase mode on the migrated data. It isn't a no-traffic revision of `santa-pack`, because that would make Firebase mode the service template, and the old trigger's next deploy would put it live.
+
+**Remaining:** the cutover itself, following [cutover.md](cutover.md).
 
 ## Critical files
 

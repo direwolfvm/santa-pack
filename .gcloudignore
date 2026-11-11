@@ -1,0 +1,10 @@
+# Files gcloud builds submit does not upload (the Docker build needs only what
+# the Dockerfile copies).
+.git
+.github
+node_modules/
+dist/
+output/
+.env
+.env.*
+*.log

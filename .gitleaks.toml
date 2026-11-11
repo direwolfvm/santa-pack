@@ -1,0 +1,14 @@
+# Secret-scanning configuration for the CI "Secret scan" job.
+title = "Santa Pack"
+
+[extend]
+useDefault = true
+
+# A Firebase web API key is a public identifier that ships to every browser; it
+# is not a credential. Only this project's one known key (the shared browser key
+# of hopeful-machine-466912-t2) is allowed, so any other key is still reported.
+[allowlist]
+description = "Public Firebase web key for hopeful-machine-466912-t2"
+regexes = [
+  '''AIzaSyC0eYv7VEZ1_0LB0DlLdy2mo2vUrNXn4Ck''',
+]

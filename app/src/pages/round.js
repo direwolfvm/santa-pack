@@ -9,7 +9,7 @@ import { announce, confirmDialog, emptyState, onSubmit, stageBadge, table, withB
  * cloaked present simply has no name, description or giver.
  *
  * @typedef {'giving' | 'guessing' | 'complete'} Stage
- * @typedef {{ uid: string, displayName: string }} Member
+ * @typedef {{ uid: string, displayName: string, guest?: boolean }} Member
  * @typedef {{
  *   id: string, receiverUid: string, cloakedName: string, guessUid: string | null, revealed: boolean,
  *   giverUid?: string, name?: string, description?: string, correct?: boolean | null,
@@ -18,7 +18,7 @@ import { announce, confirmDialog, emptyState, onSubmit, stageBadge, table, withB
  * @typedef {{ totals: { presents: number, guessed: number, revealed: number }, people: PersonProgress[] }} Progress
  * @typedef {{
  *   round: { id: string, familyId: string, familyName: string, name: string, stage: Stage },
- *   me: { uid: string, isManager: boolean },
+ *   me: { uid: string, isManager: boolean, actingAsGuest: boolean },
  *   members: Member[],
  *   presents: PresentView[],
  *   progress: Progress,
@@ -34,6 +34,11 @@ const COPY = /** @type {Record<Stage, [string, string]>} */ ({
 const shell = renderShell({ eyebrow: 'Gift round', title: 'Gift round' });
 const roundId = param('id') ?? '';
 const roundPath = `/api/rounds/${encodeURIComponent(roundId)}`;
+// Managers can play for a family member without an account (?as=<guest id>).
+const playingAs = param('as');
+/** Add the "play as" choice to an API path. @param {string} path */
+const asActor = (path) =>
+  playingAs ? `${path}${path.includes('?') ? '&' : '?'}as=${encodeURIComponent(playingAs)}` : path;
 
 /** @type {RoundView} */
 let view;
@@ -41,7 +46,7 @@ let view;
 const nameOf = (uid) => view.members.find((m) => m.uid === uid)?.displayName ?? 'Someone';
 
 async function load() {
-  view = await api(roundPath);
+  view = await api(asActor(roundPath));
   const { round, me } = view;
   const [eyebrow, subtitle] = COPY[round.stage];
   shell.title.textContent = round.name;
@@ -58,12 +63,39 @@ async function load() {
       h('a', { href: `/family.html?id=${encodeURIComponent(round.familyId)}` }, `Back to ${round.familyName}`),
     ),
   ];
-  if (me.isManager) sections.push(stageControls());
+  if (me.isManager) sections.push(playingAsPicker(), stageControls());
   if (round.stage === 'giving') sections.push(givingSection());
   if (round.stage === 'guessing') sections.push(guessingSection(), myGiftsSection());
   if (round.stage === 'complete') sections.push(revealSection());
   sections.push(progressSection());
   replace(shell.body, ...sections);
+}
+
+/** For managers: play as yourself or as a family member without an account. */
+function playingAsPicker() {
+  const guests = view.members.filter((m) => m.guest);
+  if (!guests.length) return null;
+  const select = h(
+    'select',
+    { id: 'playingAs' },
+    h('option', { value: '' }, 'Myself'),
+    guests.map((g) => h('option', { value: g.uid }, g.displayName)),
+  );
+  select.value = playingAs ?? '';
+  select.addEventListener('change', () => {
+    const url = new URL(window.location.href);
+    if (select.value) url.searchParams.set('as', select.value);
+    else url.searchParams.delete('as');
+    window.location.assign(url);
+  });
+  return h(
+    'section',
+    { class: view.me.actingAsGuest ? 'panel status' : 'panel' },
+    h('label', { for: 'playingAs' }, 'Playing as', select),
+    view.me.actingAsGuest
+      ? h('p', null, `You’re playing for ${nameOf(view.me.uid)}. You see only what they would see.`)
+      : null,
+  );
 }
 
 /** @param {Stage} stage @param {string} label @param {string} confirm */
@@ -110,7 +142,7 @@ function givingSection() {
     remove.addEventListener('click', () =>
       withBusy(remove, async () => {
         if (!(await confirmDialog(`Remove “${present.name}”?`, { confirmLabel: 'Remove', danger: true }))) return;
-        await api(`/api/presents/${encodeURIComponent(present.id)}`, { method: 'DELETE' });
+        await api(asActor(`/api/presents/${encodeURIComponent(present.id)}`), { method: 'DELETE' });
         await load();
       }),
     );
@@ -177,13 +209,16 @@ function givingSection() {
 
   onSubmit(form, async ({ presentId, receiverUid, name, cloakedName, description }) => {
     if (presentId) {
-      await api(`/api/presents/${encodeURIComponent(presentId)}`, {
+      await api(asActor(`/api/presents/${encodeURIComponent(presentId)}`), {
         method: 'PATCH',
         body: { name, cloakedName, description },
       });
       announce('Gift updated.');
     } else {
-      await api(`${roundPath}/presents`, { method: 'POST', body: { receiverUid, name, cloakedName, description } });
+      await api(asActor(`${roundPath}/presents`), {
+        method: 'POST',
+        body: { receiverUid, name, cloakedName, description },
+      });
       announce(`Gift for ${nameOf(receiverUid)} is wrapped.`);
     }
     await load();
@@ -244,7 +279,7 @@ function guessingSection() {
       h('button', { type: 'submit', class: 'secondary' }, 'Save guess'),
     );
     onSubmit(form, async ({ guessUid }) => {
-      await api(`/api/presents/${encodeURIComponent(present.id)}/guess`, {
+      await api(asActor(`/api/presents/${encodeURIComponent(present.id)}/guess`), {
         method: 'PUT',
         body: { guessUid: guessUid || null },
       });
@@ -259,7 +294,7 @@ function guessingSection() {
           ? 'Unwrap this gift? Your guess will be locked in.'
           : 'Unwrap without a guess? You won’t be able to guess afterwards.';
         if (!(await confirmDialog(warning, { confirmLabel: 'Unwrap it' }))) return;
-        await api(`/api/presents/${encodeURIComponent(present.id)}/reveal`, { method: 'POST' });
+        await api(asActor(`/api/presents/${encodeURIComponent(present.id)}/reveal`), { method: 'POST' });
         await load();
       }),
     );

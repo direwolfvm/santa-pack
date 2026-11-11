@@ -1,0 +1,40 @@
+# Build and deploy santa-pack to Cloud Run. Run by .github/workflows/deploy.yml
+# (gcloud builds submit) as the santa-pack-deployer service account.
+# Follows rosemont-club and framblywish (operator playbooks/ci-cd-and-deployment.md).
+substitutions:
+  _SERVICE: santa-pack
+  _REGION: us-east4
+options:
+  logging: CLOUD_LOGGING_ONLY
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: [build, -t, '${_REGION}-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:$BUILD_ID', .]
+  - name: gcr.io/cloud-builders/docker
+    args: [push, '${_REGION}-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:$BUILD_ID']
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - '${_SERVICE}'
+      - '--image=${_REGION}-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:$BUILD_ID'
+      - '--region=${_REGION}'
+      - '--service-account=santa-pack-runtime@$PROJECT_ID.iam.gserviceaccount.com'
+      - '--env-vars-file=deploy-env.yaml'
+      # The Firebase backend needs no secrets: ADC for Firestore and Auth, and a
+      # public web config. This also drops the old Supabase secret references.
+      - '--clear-secrets'
+      # Public site, with the invoker IAM check off (as the service already is).
+      # With --allow-unauthenticated instead, Cloud Run's front end tries to
+      # verify the Firebase ID token in the Authorization header and rejects it.
+      - '--no-invoker-iam-check'
+      - '--min-instances=0'
+      - '--max-instances=3'
+      - '--memory=512Mi'
+      - '--cpu=1'
+      - '--concurrency=40'
+      - '--timeout=60'
+      - '--port=8080'
+      - '--startup-probe=httpGet.path=/api/health,httpGet.port=8080,initialDelaySeconds=2,periodSeconds=5,failureThreshold=12'
+      - '--quiet'
+images: ['${_REGION}-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:$BUILD_ID']

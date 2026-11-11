@@ -5,7 +5,7 @@ import { renderShell, requireSignedIn, showPageError } from '../lib/shell.js';
 import { announce, confirmDialog, emptyState, onSubmit, stageBadge, table, withBusy } from '../lib/ui.js';
 
 /**
- * @typedef {{ uid: string, displayName: string, familyRole: 'member' | 'manager' }} Member
+ * @typedef {{ uid: string, displayName: string, familyRole: 'member' | 'manager', guest?: boolean }} Member
  * @typedef {{ id: string, name: string, stage: 'giving' | 'guessing' | 'complete' }} Round
  * @typedef {{
  *   family: { id: string, name: string, joinCode?: string },
@@ -72,20 +72,26 @@ async function load() {
       'tr',
       null,
       h('td', null, member.displayName),
-      h('td', null, member.familyRole === 'manager' ? 'Manager' : 'Member'),
+      h(
+        'td',
+        null,
+        member.guest ? 'No account (a manager plays for them)' : member.familyRole === 'manager' ? 'Manager' : 'Member',
+      ),
       isManager
         ? h(
             'td',
             null,
-            actionButton(
-              member.familyRole === 'manager' ? 'Make member' : 'Make manager',
-              () =>
-                api(`${base}/members/${encodeURIComponent(member.uid)}`, {
-                  method: 'PATCH',
-                  body: { familyRole: member.familyRole === 'manager' ? 'member' : 'manager' },
-                }),
-              { secondary: true },
-            ),
+            member.guest
+              ? null
+              : actionButton(
+                  member.familyRole === 'manager' ? 'Make member' : 'Make manager',
+                  () =>
+                    api(`${base}/members/${encodeURIComponent(member.uid)}`, {
+                      method: 'PATCH',
+                      body: { familyRole: member.familyRole === 'manager' ? 'member' : 'manager' },
+                    }),
+                  { secondary: true },
+                ),
             actionButton(
               'Remove',
               () => api(`${base}/members/${encodeURIComponent(member.uid)}`, { method: 'DELETE' }),
@@ -150,6 +156,22 @@ async function load() {
       ),
       h('button', { type: 'submit' }, 'Start round'),
     );
+    const guestForm = h(
+      'form',
+      { class: 'inline-form', id: 'guestForm' },
+      h(
+        'label',
+        { for: 'guestName' },
+        'Name',
+        h('input', { id: 'guestName', name: 'displayName', maxlength: 60, required: true, placeholder: 'Grandma' }),
+      ),
+      h('button', { type: 'submit', class: 'secondary' }, 'Add player'),
+    );
+    onSubmit(guestForm, async ({ displayName }) => {
+      await api(`${base}/guests`, { method: 'POST', body: { displayName } });
+      announce(`${displayName} is playing. Pick them under “Playing as” on a round page to play for them.`);
+      await load();
+    });
     onSubmit(roundForm, async ({ name }) => {
       /** @type {Round} */
       const round = await api(`${base}/rounds`, { method: 'POST', body: { name } });
@@ -178,6 +200,13 @@ async function load() {
         pendingRows.length
           ? table(['Name', 'Actions'], pendingRows, 'Join requests')
           : emptyState('Nobody is waiting.'),
+        h('h3', null, 'Add someone without an account'),
+        h(
+          'p',
+          { class: 'muted' },
+          'For little ones or anyone who won’t sign in. Managers give, guess and unwrap for them.',
+        ),
+        guestForm,
         h('h3', null, 'Start a new round'),
         roundForm,
       ),

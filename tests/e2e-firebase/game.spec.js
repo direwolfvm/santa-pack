@@ -211,3 +211,78 @@ test('a whole gift round, with the gift kept secret until the reveal', async ({ 
   await expect(row).toContainText('Fooled');
   await pages.peter.screenshot({ path: 'output/screens/complete.png', fullPage: true });
 });
+
+test('a manager plays for a family member without an account', async ({ browser }) => {
+  test.setTimeout(90_000);
+  const kate = await createPerson('Kate');
+  const peter = await createPerson('Peter');
+  const familyName = `The Griswolds ${RUN}`;
+
+  // Set up the family directly (the admin flow is covered above).
+  const family = db.collection('families').doc();
+  await family.set({ name: familyName, joinCode: 'GRSW2345', createdAt: new Date().toISOString() });
+  const pages = {};
+  for (const [key, person, role] of /** @type {const} */ ([
+    ['kate', kate, 'manager'],
+    ['peter', peter, 'member'],
+  ])) {
+    const page = await (await browser.newContext()).newPage();
+    await signIn(page, person);
+    const { uid } = await tenantAuth.getUserByEmail(person.email);
+    await db
+      .collection('memberships')
+      .doc(`${family.id}_${uid}`)
+      .set({ familyId: family.id, uid, status: 'member', familyRole: role, createdAt: new Date().toISOString() });
+    /** @type {Record<string, import('@playwright/test').Page>} */ (pages)[key] = page;
+  }
+  const { kate: katePage, peter: peterPage } = /** @type {Record<string, import('@playwright/test').Page>} */ (pages);
+
+  // Kate adds Grandma, who has no account, and starts a round.
+  await katePage.goto(`/family.html?id=${family.id}`);
+  await katePage.locator('#guestName').fill('Grandma');
+  await katePage.getByRole('button', { name: 'Add player' }).click();
+  await expect(katePage.getByRole('row', { name: /Grandma\s+No account/ })).toBeVisible();
+  await katePage.locator('#roundName').fill('Christmas Day');
+  await katePage.getByRole('button', { name: 'Start round' }).click();
+  await expect(katePage.getByRole('heading', { name: 'Christmas Day', level: 1 })).toBeVisible();
+  const roundUrl = katePage.url();
+
+  // Peter wraps a gift for Grandma; Kate wraps one *as* Grandma for Peter.
+  await peterPage.goto(roundUrl);
+  await expect(peterPage.locator('#playingAs')).toHaveCount(0);
+  await peterPage.locator('#receiverUid').selectOption({ label: 'Grandma' });
+  await peterPage.locator('#presentName').fill('Fuzzy slippers');
+  await peterPage.locator('#cloakedName').fill('Toasty toes');
+  await peterPage.getByRole('button', { name: 'Wrap it up' }).click();
+  await expect(peterPage.getByRole('cell', { name: 'Fuzzy slippers' })).toBeVisible();
+
+  await katePage.locator('#playingAs').selectOption({ label: 'Grandma' });
+  await expect(katePage.getByText('You’re playing for Grandma.')).toBeVisible();
+  await katePage.locator('#receiverUid').selectOption({ label: 'Peter' });
+  await katePage.locator('#presentName').fill('Fruitcake');
+  await katePage.getByRole('button', { name: 'Wrap it up' }).click();
+  await expect(katePage.getByRole('cell', { name: 'Fruitcake' })).toBeVisible();
+
+  // Guessing: as Grandma, Kate sees only the cloaked name, guesses Peter and unwraps.
+  await katePage.getByRole('button', { name: 'Start guessing' }).click();
+  await confirm(katePage, 'Start guessing');
+  await expect(katePage.locator('.stage-badge')).toHaveText('guessing');
+  const card = katePage.locator('.present-card', { hasText: 'Toasty toes' });
+  await expect(card).toBeVisible();
+  await expect(katePage.getByText('Fuzzy slippers')).toHaveCount(0);
+  await card.getByLabel('Who gave this?').selectOption({ label: 'Peter' });
+  await card.getByRole('button', { name: 'Save guess' }).click();
+  await expect(katePage.getByRole('status')).toContainText('Guess saved: Peter');
+  await katePage
+    .locator('.present-card', { hasText: 'Toasty toes' })
+    .getByRole('button', { name: 'Unwrap it' })
+    .click();
+  await confirm(katePage, 'Unwrap it');
+  await expect(katePage.locator('.present-card', { hasText: 'Toasty toes' })).toContainText('You guessed right!');
+
+  // Back as herself, Kate doesn't see Grandma's gifts.
+  await katePage.locator('#playingAs').selectOption({ label: 'Myself' });
+  await expect(katePage).not.toHaveURL(/[?&]as=/);
+  await expect(katePage.getByText('No gifts for you in this round.')).toBeVisible();
+  await expect(katePage.getByText('Fuzzy slippers')).toHaveCount(0);
+});

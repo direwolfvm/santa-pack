@@ -1,0 +1,11 @@
+# Public configuration for the Cloud Run service (gcloud run deploy --env-vars-file).
+# No secrets: the Firebase web API key is a public identifier that ships to every
+# browser (allowlisted in .gitleaks.toml); access is enforced by the server.
+BACKEND: 'firebase'
+GOOGLE_CLOUD_PROJECT: 'hopeful-machine-466912-t2'
+FIRESTORE_DATABASE: 'santa-pack'
+FIREBASE_TENANT_ID: 'santa-pack-y6e8u'
+FIREBASE_API_KEY: 'AIzaSyC0eYv7VEZ1_0LB0DlLdy2mo2vUrNXn4Ck'
+FIREBASE_AUTH_DOMAIN: 'hopeful-machine-466912-t2.firebaseapp.com'
+APP_BASE_URL: 'https://santapack.me'
+APP_ADDITIONAL_ORIGINS: 'https://santa-pack-jll5e6reca-uk.a.run.app,https://santa-pack-983969754780.us-east4.run.app'
