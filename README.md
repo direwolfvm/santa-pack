@@ -6,7 +6,7 @@ A family gift-exchange game at [santapack.me](https://santapack.me). Families ru
 2. **Guessing**: receivers see only the teaser and guess who gave it.
 3. **Complete**: everything is revealed.
 
-> **Overhaul in progress.** The app is moving from Supabase to Firebase Auth + Firestore with a server-enforced API, following the operator playbooks. See [docs/overhaul-plan.md](docs/overhaul-plan.md) for the phases and what is done. This README describes the code as it is today.
+> **Overhaul:** santapack.me moved from Supabase to Firebase Auth + Firestore, with a server-enforced API, on 2026-11-11, following the operator playbooks. `web/` and the Supabase server code remain only for rollback until the cleanup. See [docs/overhaul-plan.md](docs/overhaul-plan.md).
 
 ## Architecture (today)
 
@@ -46,12 +46,14 @@ CI (`.github/workflows/ci.yml`) runs all of the above plus `npm audit`, dependen
 
 ## Deploy
 
-- **Live target:** Cloud Run service `santa-pack` in GCP project `hopeful-machine-466912-t2`, region `us-east4`, behind santapack.me.
-- **How:** a Cloud Build trigger builds the root `Dockerfile` on every push to `main` and updates the service. **Merging to `main` deploys.**
-- **Config:** `SUPABASE_URL` and `SUPABASE_ANON_KEY` come from the Secret Manager secrets `SUPABASE_URL` and `SUPABASE_KEY`.
+- **Live target:** Cloud Run service `santa-pack` in GCP project `hopeful-machine-466912-t2`, region `us-east4`, behind santapack.me. It runs as `santa-pack-runtime`, with `BACKEND=firebase`.
+- **How:** `.github/workflows/deploy.yml` runs on every push to `main`, inside the `production` environment (main only). It authenticates keylessly through GitHub OIDC (Workload Identity provider `santa-pack`), runs `cloudbuild.yaml` (build, push, `gcloud run deploy` with `deploy-env.yaml`), then checks `https://santapack.me/api/health`. **Merging to `main` deploys.** Setting the repository variable `DEPLOY_ENABLED` to anything but `true` pauses deploys.
+- **Config:** public values only, in `deploy-env.yaml`. There are no secrets: the server reaches Firestore and Firebase Auth through its service account.
+- **Firestore rules:** run `node scripts/deploy-rules.mjs --apply` after changing `firebase/firestore.rules`.
+- **First admin:** run `node --env-file=.env scripts/seed-admin.mjs <email>`.
 - **Health:** `GET /api/health`.
 
-**Next:** `.github/workflows/deploy.yml` (Workload Identity Federation → Cloud Build → Cloud Run, health-checked, following rosemont-club) replaces the trigger at the cutover. Until then it is off (`DEPLOY_ENABLED`). See [docs/cutover.md](docs/cutover.md).
+The move from Supabase, with its rollback path, is recorded in [docs/cutover.md](docs/cutover.md).
 
 ## Docker
 

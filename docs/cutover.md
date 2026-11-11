@@ -1,5 +1,19 @@
 # Cutover: Supabase → Firebase
 
+> **Done 2026-11-11.** santapack.me runs the Firebase app (revision `santa-pack-00077-jj6`, deployed by the Deploy workflow).
+>
+> - **Final migration:** 4 accounts, 3 families, 5 memberships (2 guests), 4 rounds, 12 presents.
+> - **Smoke test** on santapack.me, with a throwaway account, since deleted:
+>   - sign-in works;
+>   - admin routes return 403 for a plain user, and another family's round returns 404;
+>   - cross-site writes are refused and same-site writes work;
+>   - direct Firestore reads are blocked;
+>   - no console or server errors.
+>
+> **Rollback, if ever needed:** send traffic to `santa-pack-00076-tpl` (the last Supabase revision), set `DEPLOY_ENABLED=false`, and re-enable trigger `rmgpgab-santa-pack-us-east4-direwolfvm-santa-pack--mavkv`. Anything created after the cutover exists only in Firebase.
+>
+> **Still to do:** step 7, after a quiet week.
+
 The runbook for switching santapack.me from the Supabase app (`BACKEND=supabase`, `web/`) to the Firebase app (`BACKEND=firebase`, `app/`). Phase 5 of [overhaul-plan.md](overhaul-plan.md).
 
 ## Already in place (2026-11-10)
