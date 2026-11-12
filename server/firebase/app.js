@@ -4,6 +4,7 @@ import { errorHandler, noStore } from '../http.js';
 import { requireSameOriginJson, securityHeaders } from '../security.js';
 import { createApi } from './api.js';
 import { createAuth } from './auth.js';
+import { createAuthMailApi } from './auth-mail-api.js';
 
 // The Vite build of app/ (npm run build).
 const webRoot = fileURLToPath(new URL('../../dist', import.meta.url));
@@ -18,8 +19,10 @@ const webRoot = fileURLToPath(new URL('../../dist', import.meta.url));
  * @param {{ apiKey: string, authDomain: string, projectId: string, tenantId: string }} deps.webConfig
  *   Public Firebase web config for the browser.
  * @param {string[]} deps.allowedOrigins Origins allowed to send writes.
+ * @param {import('./signin-mail.js').SigninMail} [deps.mail] Sends the sign-in emails. Without it the
+ *   browser asks Google's sign-in service to send them.
  */
-export default function createFirebaseApp({ store, auth, webConfig, allowedOrigins }) {
+export default function createFirebaseApp({ store, auth, webConfig, allowedOrigins, mail }) {
   const app = express();
   app.disable('x-powered-by');
   // Cloud Run puts one proxy in front of the app.
@@ -34,17 +37,15 @@ export default function createFirebaseApp({ store, auth, webConfig, allowedOrigi
     res.json({ status: 'ok' });
   });
   app.get('/api/config', (_req, res) => {
-    res.set('Cache-Control', 'no-cache').json(authEmulatorUrl ? { ...webConfig, authEmulatorUrl } : webConfig);
+    res
+      .set('Cache-Control', 'no-cache')
+      .json({ ...webConfig, ownMail: Boolean(mail), ...(authEmulatorUrl ? { authEmulatorUrl } : {}) });
   });
 
-  const { requireUser, requireAdmin } = createAuth({ auth, store });
-  app.use(
-    '/api',
-    noStore,
-    requireSameOriginJson(allowedOrigins),
-    express.json({ limit: '80kb' }),
-    createApi({ store, requireUser, requireAdmin }),
-  );
+  const { verifiedToken, requireUser, requireAdmin } = createAuth({ auth, store });
+  app.use('/api', noStore, requireSameOriginJson(allowedOrigins), express.json({ limit: '80kb' }));
+  if (mail) app.use('/api', createAuthMailApi({ store, mail, verifiedToken }));
+  app.use('/api', createApi({ store, requireUser, requireAdmin }));
 
   // Hashed asset files can be cached for a long time; pages must revalidate.
   app.use('/assets', express.static(`${webRoot}/assets`, { immutable: true, maxAge: '365d', fallthrough: false }));

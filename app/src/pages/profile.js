@@ -1,8 +1,7 @@
 import '../styles.css';
-import { sendPasswordResetEmail } from 'firebase/auth';
 import { api } from '../lib/api.js';
+import { requestPasswordReset } from '../lib/auth-mail.js';
 import { h, replace } from '../lib/dom.js';
-import { getFirebaseAuth } from '../lib/firebase.js';
 import { renderShell, requireSignedIn, showPageError } from '../lib/shell.js';
 import { announce, onSubmit, withBusy } from '../lib/ui.js';
 
@@ -41,7 +40,7 @@ try {
   const reset = h('button', { type: 'button', class: 'secondary' }, 'Email me a password reset link');
   reset.addEventListener('click', () =>
     withBusy(reset, async () => {
-      await sendPasswordResetEmail(await getFirebaseAuth(), me.user.email);
+      await requestPasswordReset(me.user.email);
       announce(`Sent to ${me.user.email}.`);
     }),
   );

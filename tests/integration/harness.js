@@ -7,6 +7,7 @@ import { getAuth } from 'firebase-admin/auth';
 import request from 'supertest';
 import { connectFirebase } from '../../server/firebase/admin.js';
 import createFirebaseApp from '../../server/firebase/app.js';
+import { createSigninMail } from '../../server/firebase/signin-mail.js';
 import { createStore } from '../../server/firebase/store.js';
 
 export const PROJECT_ID = 'demo-santa-pack';
@@ -26,7 +27,18 @@ export async function startHarness() {
 
   const { db, auth } = connectFirebase({ projectId: PROJECT_ID, databaseId: DATABASE_ID, tenantId: tenant.tenantId });
   const store = createStore(db);
+  // Sign-in emails are captured here instead of sent.
+  /** @type {import('../../server/firebase/mail.js').Message[]} */
+  const outbox = [];
+  const mail = createSigninMail({
+    auth,
+    send: async (message) => {
+      outbox.push(message);
+    },
+    baseUrl: BASE_URL,
+  });
   const app = createFirebaseApp({
+    mail,
     store,
     auth,
     webConfig: { apiKey: 'fake', authDomain: 'localhost', projectId: PROJECT_ID, tenantId: tenant.tenantId },
@@ -88,5 +100,5 @@ export async function startHarness() {
     };
   }
 
-  return { app, db, auth, store, tenantId: tenant.tenantId, signUp, as };
+  return { app, db, auth, store, outbox, tenantId: tenant.tenantId, signUp, signIn, as };
 }
