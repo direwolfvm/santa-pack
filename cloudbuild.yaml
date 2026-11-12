@@ -21,9 +21,10 @@ steps:
       - '--region=${_REGION}'
       - '--service-account=santa-pack-runtime@$PROJECT_ID.iam.gserviceaccount.com'
       - '--env-vars-file=deploy-env.yaml'
-      # The Firebase backend needs no secrets: ADC for Firestore and Auth, and a
-      # public web config. This also drops the old Supabase secret references.
-      - '--clear-secrets'
+      # The only secret: a Mailgun key that can only send from mg.santapack.me,
+      # for the sign-in emails. ADC covers Firestore and Auth, and the web
+      # config is public. --set-secrets replaces any other secret references.
+      - '--set-secrets=MAILGUN_API_KEY=SANTA_PACK_MAILGUN_API_KEY:latest'
       # Public site, with the invoker IAM check off (as the service already is).
       # With --allow-unauthenticated instead, Cloud Run's front end tries to
       # verify the Firebase ID token in the Authorization header and rejects it.

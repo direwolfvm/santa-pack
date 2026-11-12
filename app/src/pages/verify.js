@@ -1,5 +1,6 @@
 import '../styles.css';
-import { sendEmailVerification, signOut } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
+import { requestVerification } from '../lib/auth-mail.js';
 import { h, param, replace, safeNextPath } from '../lib/dom.js';
 import { currentFirebaseUser, getFirebaseAuth } from '../lib/firebase.js';
 import { renderShell } from '../lib/shell.js';
@@ -34,7 +35,7 @@ if (!user) {
   const resend = h('button', { type: 'button', class: 'secondary' }, 'Send the email again');
   resend.addEventListener('click', () =>
     withBusy(resend, async () => {
-      await sendEmailVerification(user);
+      await requestVerification(user);
       announce('Sent. It can take a minute or two to arrive.');
     }),
   );

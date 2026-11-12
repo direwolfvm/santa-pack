@@ -11,15 +11,17 @@ import { HttpError } from '../http.js';
  * @param {{ auth: import('firebase-admin/auth').TenantAwareAuth, store: import('./store.js').Store }} deps
  */
 export function createAuth({ auth, store }) {
-  /** @param {import('express').Request} req @param {import('express').Response} res @param {import('express').NextFunction} next */
-  async function requireUser(req, res, next) {
+  /**
+   * The verified Firebase ID token in the Authorization header. Used directly
+   * only where an unconfirmed email is fine (asking for the confirmation email).
+   * @param {import('express').Request} req
+   */
+  async function verifiedToken(req) {
     const header = req.get('authorization') ?? '';
     const [scheme, token] = header.split(' ');
     if (scheme !== 'Bearer' || !token) throw new HttpError(401, 'Please sign in.');
-
-    let decoded;
     try {
-      decoded = await auth.verifyIdToken(token, true);
+      return await auth.verifyIdToken(token, true);
     } catch (error) {
       // Log why (never the token) so a misconfiguration is visible in Cloud Run logs.
       console.warn(
@@ -29,6 +31,11 @@ export function createAuth({ auth, store }) {
       );
       throw new HttpError(401, 'Please sign in again.');
     }
+  }
+
+  /** @param {import('express').Request} req @param {import('express').Response} res @param {import('express').NextFunction} next */
+  async function requireUser(req, res, next) {
+    const decoded = await verifiedToken(req);
     if (!decoded.email_verified) {
       throw new HttpError(403, 'Please verify your email address first. Check your inbox for the link.');
     }
@@ -45,7 +52,7 @@ export function createAuth({ auth, store }) {
     next();
   }
 
-  return { requireUser, requireAdmin };
+  return { verifiedToken, requireUser, requireAdmin };
 }
 
 /**

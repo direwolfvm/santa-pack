@@ -1,11 +1,6 @@
 import '../styles.css';
-import {
-  createUserWithEmailAndPassword,
-  sendEmailVerification,
-  sendPasswordResetEmail,
-  signInWithEmailAndPassword,
-  updateProfile,
-} from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { requestPasswordReset, requestVerification } from '../lib/auth-mail.js';
 import { h, param, replace, safeNextPath } from '../lib/dom.js';
 import { getFirebaseAuth } from '../lib/firebase.js';
 import { renderShell } from '../lib/shell.js';
@@ -67,9 +62,14 @@ const resetForm = h(
   h('button', { type: 'submit', class: 'secondary' }, 'Email me a reset link'),
 );
 onSubmit(resetForm, async ({ email }) => {
-  // Same message whether or not the account exists.
-  await sendPasswordResetEmail(await getFirebaseAuth(), email).catch(() => {});
-  resetStatus.textContent = 'If an account exists for that email, a reset link is on its way.';
+  resetStatus.textContent = '';
+  // Same message whether or not the account exists. Only a rate limit is
+  // worth reporting, and it doesn't reveal an account either.
+  let message = 'If an account exists for that email, a reset link is on its way.';
+  await requestPasswordReset(email).catch((/** @type {Error} */ error) => {
+    if (error.message.startsWith('Too many')) message = 'Too many tries. Please wait a little and try again.';
+  });
+  resetStatus.textContent = message;
 });
 
 const signUpStatus = h('p', { class: 'form-status', role: 'status', 'aria-live': 'polite' });
@@ -95,7 +95,8 @@ onSubmit(signUpForm, ({ name, email, password }) =>
   attempt(signUpStatus, async () => {
     const { user } = await createUserWithEmailAndPassword(await getFirebaseAuth(), email, password);
     await updateProfile(user, { displayName: name.trim() });
-    await sendEmailVerification(user);
+    // The verify page can send it again if this one fails.
+    await requestVerification(user).catch(() => {});
     window.location.assign(`/verify.html?next=${encodeURIComponent(next)}`);
   }),
 );

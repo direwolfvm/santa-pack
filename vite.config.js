@@ -16,7 +16,7 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       input: Object.fromEntries(
-        ['index', 'login', 'verify', 'family', 'round', 'profile', 'admin'].map((name) => [name, page(name)]),
+        ['index', 'login', 'verify', 'action', 'family', 'round', 'profile', 'admin'].map((name) => [name, page(name)]),
       ),
     },
   },

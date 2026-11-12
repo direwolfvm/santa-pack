@@ -44,3 +44,30 @@ test('missing settings are named without echoing values', () => {
     },
   );
 });
+
+test('mail is off without Mailgun settings, and on with all three', () => {
+  const off = loadConfig(firebase);
+  assert.equal(off.backend === 'firebase' && off.mailgun, null);
+  const on = loadConfig({
+    ...firebase,
+    MAILGUN_API_KEY: 'key',
+    MAILGUN_DOMAIN: 'mg.santapack.me',
+    MAIL_FROM: 'Santa Pack <noreply@mg.santapack.me>',
+  });
+  if (on.backend !== 'firebase') return assert.fail('expected firebase');
+  assert.deepEqual(on.mailgun, {
+    apiKey: 'key',
+    domain: 'mg.santapack.me',
+    from: 'Santa Pack <noreply@mg.santapack.me>',
+    apiBase: 'https://api.mailgun.net',
+    testMode: false,
+  });
+  assert.equal(on.baseUrl, 'https://santapack.me');
+});
+
+test('half-configured mail is refused, naming the settings only', () => {
+  assert.throws(
+    () => loadConfig({ ...firebase, MAILGUN_API_KEY: 'should-not-appear' }),
+    (error) => error instanceof Error && /MAIL_FROM/.test(error.message) && !error.message.includes('should-not'),
+  );
+});

@@ -9,4 +9,4 @@
 - Never build DOM from user data with `innerHTML`. In `app/`, use `h()` from `app/src/lib/dom.js` (lint enforces this).
 - Gift secrecy (present names, givers) must be enforced on the server, never by hiding things in the browser. Every present read goes through `projectPresent` and every write through `presentActionError` (`server/game/rules.js`).
 - Live data is in Firebase: tenant `santa-pack-y6e8u`, Firestore database `santa-pack`. Never point tests or scripts at it; use the emulators. The self-hosted Supabase "project-b" holds the pre-cutover copy. Read it only.
-- Key names only in code, docs and chat. Values live in Secret Manager.
+- Key names only in code, docs and chat. Values live in Secret Manager (the only one today is `SANTA_PACK_MAILGUN_API_KEY`, for the sign-in emails).

@@ -9,3 +9,6 @@ FIREBASE_API_KEY: 'AIzaSyC0eYv7VEZ1_0LB0DlLdy2mo2vUrNXn4Ck'
 FIREBASE_AUTH_DOMAIN: 'hopeful-machine-466912-t2.firebaseapp.com'
 APP_BASE_URL: 'https://santapack.me'
 APP_ADDITIONAL_ORIGINS: 'https://santa-pack-jll5e6reca-uk.a.run.app,https://santa-pack-983969754780.us-east4.run.app'
+# Sign-in emails (server/firebase/signin-mail.js). The key is a secret; see cloudbuild.yaml.
+MAILGUN_DOMAIN: 'mg.santapack.me'
+MAIL_FROM: 'Santa Pack <noreply@mg.santapack.me>'

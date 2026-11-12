@@ -286,3 +286,43 @@ test('a manager plays for a family member without an account', async ({ browser 
   await expect(katePage.getByText('No gifts for you in this round.')).toBeVisible();
   await expect(katePage.getByText('Fuzzy slippers')).toHaveCount(0);
 });
+
+/** The one-time code in a link from the sign-in service. @param {string} link */
+const oobCode = (link) => /** @type {string} */ (new URL(link).searchParams.get('oobCode'));
+
+test('@mobile a password reset link opens our page, sets the password, and signs in', async ({ page }) => {
+  /** @type {string[]} */
+  const problems = [];
+  page.on('pageerror', (error) => problems.push(error.message));
+  const person = await createPerson('Forgetful');
+
+  // Asking for the email from the sign-in page (the server sends it to its log here).
+  await page.goto('/login.html');
+  await page.getByText('Forgot your password?').click();
+  await page.locator('#resetEmail').fill(person.email);
+  await page.getByRole('button', { name: 'Email me a reset link' }).click();
+  await expect(page.getByText('a reset link is on its way')).toBeVisible();
+
+  // "Click the link in the email": the same kind of code the server mails.
+  const code = oobCode(await tenantAuth.generatePasswordResetLink(person.email));
+  await page.goto(`/action.html?mode=resetPassword&oobCode=${encodeURIComponent(code)}`);
+  await expect(page.getByRole('heading', { name: 'Choose a new password' })).toBeVisible();
+  await expect(page.getByText(person.email)).toBeVisible();
+  await page.locator('#newPassword').fill('brand-new-merry-password');
+  await page.getByRole('button', { name: 'Save and sign in' }).click();
+  await expect(page.getByRole('heading', { name: 'Your families' })).toBeVisible();
+
+  // A code works once.
+  await page.goto(`/action.html?mode=resetPassword&oobCode=${encodeURIComponent(code)}`);
+  await expect(page.getByRole('heading', { name: 'This link no longer works' })).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
+test('a confirmation link opens our page and confirms the email', async ({ page }) => {
+  const email = `confirmer-${randomUUID().slice(0, 8)}@example.test`;
+  await tenantAuth.createUser({ email, password: PASSWORD, emailVerified: false, displayName: 'Confirmer' });
+  const code = oobCode(await tenantAuth.generateEmailVerificationLink(email));
+  await page.goto(`/action.html?mode=verifyEmail&oobCode=${encodeURIComponent(code)}`);
+  await expect(page.getByRole('heading', { name: 'Email confirmed' })).toBeVisible();
+  expect((await tenantAuth.getUserByEmail(email)).emailVerified).toBe(true);
+});

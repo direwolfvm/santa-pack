@@ -16,6 +16,13 @@ const firebaseEnv = z.object({
   APP_BASE_URL: z.url(),
   // Comma-separated extra origins allowed to send writes (for example the run.app URL).
   APP_ADDITIONAL_ORIGINS: z.string().default(''),
+  // Sign-in emails through Mailgun (server/firebase/signin-mail.js). All three
+  // or none: without them the browser asks Google's sign-in service instead.
+  MAILGUN_API_KEY: z.string().min(1).optional(),
+  MAILGUN_DOMAIN: z.string().min(1).optional(),
+  MAIL_FROM: z.string().min(1).optional(),
+  MAILGUN_API_BASE_URL: z.url().default('https://api.mailgun.net'),
+  MAILGUN_TEST_MODE: z.enum(['true', 'false']).default('false'),
 });
 
 /**
@@ -30,6 +37,12 @@ export function loadConfig(env) {
     const parsed = firebaseEnv.safeParse(env);
     if (!parsed.success) throw new Error(`Missing or invalid settings: ${describe(parsed.error)}`);
     const c = parsed.data;
+    const mailSettings = [c.MAILGUN_API_KEY, c.MAILGUN_DOMAIN, c.MAIL_FROM];
+    if (mailSettings.some(Boolean) && !mailSettings.every(Boolean)) {
+      throw new Error(
+        'Missing or invalid settings: set all of MAILGUN_API_KEY, MAILGUN_DOMAIN and MAIL_FROM, or none.',
+      );
+    }
     return {
       backend: /** @type {const} */ ('firebase'),
       port,
@@ -42,7 +55,18 @@ export function loadConfig(env) {
         projectId: c.GOOGLE_CLOUD_PROJECT,
         tenantId: c.FIREBASE_TENANT_ID,
       },
+      baseUrl: new URL(c.APP_BASE_URL).origin,
       allowedOrigins: [c.APP_BASE_URL, ...c.APP_ADDITIONAL_ORIGINS.split(',').filter(Boolean)],
+      mailgun:
+        c.MAILGUN_API_KEY && c.MAILGUN_DOMAIN && c.MAIL_FROM
+          ? {
+              apiKey: c.MAILGUN_API_KEY,
+              domain: c.MAILGUN_DOMAIN,
+              from: c.MAIL_FROM,
+              apiBase: c.MAILGUN_API_BASE_URL,
+              testMode: c.MAILGUN_TEST_MODE === 'true',
+            }
+          : null,
     };
   }
   const parsed = supabaseEnv.safeParse(env);
