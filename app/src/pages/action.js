@@ -1,6 +1,8 @@
 import '../styles.css';
 import {
+  ActionCodeOperation,
   applyActionCode,
+  checkActionCode,
   confirmPasswordReset,
   signInWithEmailAndPassword,
   verifyPasswordResetCode,
@@ -12,9 +14,9 @@ import { onSubmit } from '../lib/ui.js';
 
 // Where the links in Santa Pack's sign-in emails land (server/firebase/signin-mail.js):
 // ?mode=resetPassword|verifyEmail&oobCode=<one-time code from Google's sign-in service>.
+// What happens is decided by the code itself (checkActionCode), not by `mode`.
 
 const shell = renderShell({ variant: 'login', eyebrow: 'Santa Pack', title: 'One moment…' });
-const mode = param('mode') ?? '';
 const code = param('oobCode') ?? '';
 const auth = await getFirebaseAuth();
 
@@ -83,9 +85,9 @@ async function verifyEmail() {
 }
 
 try {
-  if (!code) failed();
-  else if (mode === 'resetPassword') await resetPassword();
-  else if (mode === 'verifyEmail') await verifyEmail();
+  const { operation } = await checkActionCode(auth, code);
+  if (operation === ActionCodeOperation.PASSWORD_RESET) await resetPassword();
+  else if (operation === ActionCodeOperation.VERIFY_EMAIL) await verifyEmail();
   else failed();
 } catch {
   failed();

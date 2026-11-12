@@ -58,8 +58,9 @@ test('sign-in emails link to our own page with only the one-time code, and escap
   await mail.verification('kid@example.test', '<b>Kid</b>');
   const [message] = sent;
   assert.equal(message.subject, 'Confirm your email for Santa Pack');
-  assert.ok(message.text.includes('https://santapack.me/action.html?mode=verifyEmail&oobCode=CODE-1'));
-  assert.ok(!message.text.includes('firebaseapp.com'));
+  const links = [...message.text.matchAll(/https?:\/\/\S+/g)].map((match) => match[0]);
+  assert.ok(links.includes('https://santapack.me/action.html?mode=verifyEmail&oobCode=CODE-1'));
+  assert.deepEqual([...new Set(links.map((link) => new URL(link).host))], ['santapack.me']);
   assert.ok(message.html.includes('&#60;b&#62;Kid'));
   assert.ok(!message.html.includes('<b>Kid'));
 });
