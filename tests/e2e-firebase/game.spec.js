@@ -18,6 +18,31 @@ const SECRET = `Talkboy recorder ${RUN}`;
 // Unique per run: the emulators keep data between repeated runs.
 const FAMILY = `The McCallisters ${RUN}`;
 const CLOAK = 'Operation Mistletoe';
+// A real (1×1) image, so the browser can decode and shrink it before upload.
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64',
+);
+
+/**
+ * Add a photo through a slot's file input (on a phone the same input offers
+ * the camera and the photo library).
+ * @param {import('@playwright/test').Locator} scope @param {string} label
+ */
+async function addPhoto(scope, label) {
+  const slot = scope.locator('figure', { has: scope.page().getByText(label, { exact: true }) });
+  await slot
+    .locator('input[type=file]:not([capture])')
+    .setInputFiles({ name: 'photo.png', mimeType: 'image/png', buffer: PNG });
+  await expect(scope.page().getByRole('status')).toContainText('Photo saved.');
+}
+
+/** True once the photo with this alt text has loaded. @param {import('@playwright/test').Locator} scope @param {string} alt */
+async function expectPhoto(scope, alt) {
+  const img = scope.getByRole('img', { name: alt, exact: true });
+  await expect(img).toBeVisible();
+  await expect.poll(() => img.evaluate((el) => /** @type {HTMLImageElement} */ (el).naturalWidth)).toBeGreaterThan(0);
+}
 
 /** @param {string} name */
 async function createPerson(name) {
@@ -149,7 +174,13 @@ test('a whole gift round, with the gift kept secret until the reveal', async ({ 
   await pages.peter.locator('#presentName').fill(SECRET);
   await pages.peter.locator('#cloakedName').fill(CLOAK);
   await pages.peter.getByRole('button', { name: 'Wrap it up' }).click();
-  await expect(pages.peter.getByRole('cell', { name: SECRET })).toBeVisible();
+  const peterCard = pages.peter.locator('.present-card', { hasText: SECRET });
+  await expect(peterCard.getByRole('heading', { name: SECRET })).toBeVisible();
+  // ...and photographs it, before and after wrapping.
+  await addPhoto(peterCard, 'The gift');
+  await expectPhoto(pages.peter.locator('.present-card', { hasText: SECRET }), 'The gift');
+  await addPhoto(pages.peter.locator('.present-card', { hasText: SECRET }), 'Wrapped');
+  await expectPhoto(pages.peter.locator('.present-card', { hasText: SECRET }), 'Wrapped');
 
   // Kevin watches every API response from here until he unwraps the gift.
   /** @type {string[]} */
@@ -158,6 +189,8 @@ test('a whole gift round, with the gift kept secret until the reveal', async ({ 
   let seenAfterReveal = 0;
   pages.kevin.on('response', async (response) => {
     if (!response.url().includes('/api/')) return;
+    // The giver's photo of the gift is as secret as its name.
+    if (!revealed && response.url().includes('/photos/gift') && response.ok()) leaks.push(response.url());
     const wasRevealed = revealed;
     const text = await response.text().catch(() => '');
     if (!text.includes(SECRET)) return;
@@ -181,6 +214,12 @@ test('a whole gift round, with the gift kept secret until the reveal', async ({ 
   const card = pages.kevin.locator('.present-card', { hasText: CLOAK });
   await expect(card).toBeVisible();
   await expect(pages.kevin.getByText(SECRET)).toHaveCount(0);
+  // He sees Peter's photo of the wrapped gift, not the one of the gift itself,
+  // and photographs it once he's opened it.
+  await expectPhoto(card, 'Wrapped');
+  await expect(card.getByRole('img', { name: 'The gift' })).toHaveCount(0);
+  await addPhoto(card, 'Unwrapped');
+  await expectPhoto(pages.kevin.locator('.present-card', { hasText: CLOAK }), 'Unwrapped');
   await pages.kevin.screenshot({ path: 'output/screens/guessing-receiver.png', fullPage: true });
   await card.getByLabel('Who gave this?').selectOption({ label: 'Kate' });
   await card.getByRole('button', { name: 'Save guess' }).click();
@@ -194,6 +233,9 @@ test('a whole gift round, with the gift kept secret until the reveal', async ({ 
   await expect(opened).toContainText(SECRET);
   await expect(opened).toContainText('From Peter.');
   await expect(opened).toContainText('You guessed Kate.');
+  // The reveal puts Peter's photo of the gift next to Kevin's own.
+  await expectPhoto(opened, 'Peter’s photo');
+  await expectPhoto(opened, 'Your photo');
   // Control: the same watcher does see the name once it's allowed, so the
   // empty \`leaks\` above is a real result.
   await expect.poll(() => seenAfterReveal).toBeGreaterThan(0);
@@ -209,6 +251,7 @@ test('a whole gift round, with the gift kept secret until the reveal', async ({ 
   await expect(row).toContainText('Peter');
   await expect(row).toContainText('Kevin');
   await expect(row).toContainText('Fooled');
+  await expectPhoto(row, 'Kevin’s photo');
   await pages.peter.screenshot({ path: 'output/screens/complete.png', fullPage: true });
 });
 
@@ -254,14 +297,14 @@ test('a manager plays for a family member without an account', async ({ browser 
   await peterPage.locator('#presentName').fill('Fuzzy slippers');
   await peterPage.locator('#cloakedName').fill('Toasty toes');
   await peterPage.getByRole('button', { name: 'Wrap it up' }).click();
-  await expect(peterPage.getByRole('cell', { name: 'Fuzzy slippers' })).toBeVisible();
+  await expect(peterPage.getByRole('heading', { name: 'Fuzzy slippers' })).toBeVisible();
 
   await katePage.locator('#playingAs').selectOption({ label: 'Grandma' });
   await expect(katePage.getByText('You’re playing for Grandma.')).toBeVisible();
   await katePage.locator('#receiverUid').selectOption({ label: 'Peter' });
   await katePage.locator('#presentName').fill('Fruitcake');
   await katePage.getByRole('button', { name: 'Wrap it up' }).click();
-  await expect(katePage.getByRole('cell', { name: 'Fruitcake' })).toBeVisible();
+  await expect(katePage.getByRole('heading', { name: 'Fruitcake' })).toBeVisible();
 
   // Guessing: as Grandma, Kate sees only the cloaked name, guesses Peter and unwraps.
   await katePage.getByRole('button', { name: 'Start guessing' }).click();
@@ -325,4 +368,70 @@ test('a confirmation link opens our page and confirms the email', async ({ page 
   await page.goto(`/action.html?mode=verifyEmail&oobCode=${encodeURIComponent(code)}`);
   await expect(page.getByRole('heading', { name: 'Email confirmed' })).toBeVisible();
   expect((await tenantAuth.getUserByEmail(email)).emailVerified).toBe(true);
+});
+
+test('@mobile on a phone, photos can come from the camera or the photo library', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'Desktop browsers get a single "Add photo" button.');
+  const giver = await createPerson('Snapper');
+  const receiver = await createPerson('Snapped');
+  const [giverUid, receiverUid] = await Promise.all(
+    [giver, receiver].map(async (p) => (await tenantAuth.getUserByEmail(p.email)).uid),
+  );
+  // Set the round up directly, as the API would have.
+  const at = new Date().toISOString();
+  const family = await db
+    .collection('families')
+    .add({ name: `Shutterbugs ${RUN}`, joinCode: 'PHOTOS42', createdAt: at });
+  for (const uid of [giverUid, receiverUid]) {
+    await db
+      .collection('memberships')
+      .doc(`${family.id}_${uid}`)
+      .set({ familyId: family.id, uid, status: 'member', familyRole: 'member', createdAt: at });
+  }
+  const round = await db
+    .collection('rounds')
+    .add({ familyId: family.id, name: 'Snapshots', stage: 'giving', createdAt: at });
+  await db.collection('presents').add({
+    roundId: round.id,
+    familyId: family.id,
+    giverUid,
+    receiverUid,
+    name: 'Instant camera',
+    description: '',
+    cloakedName: 'Say cheese',
+    guessUid: null,
+    revealedAt: null,
+    createdAt: at,
+  });
+
+  await signIn(page, giver);
+  await page.goto(`/round.html?id=${round.id}`);
+  const slot = page.locator('.present-card figure', { hasText: 'The gift' });
+  await expect(slot.getByRole('button', { name: 'Take photo' })).toBeVisible();
+  await expect(slot.getByRole('button', { name: 'Choose photo' })).toBeVisible();
+  // "Take photo" asks for the camera; "Choose photo" lets the phone offer its library too.
+  await expect(slot.locator('input[type=file][capture=environment]')).toHaveCount(1);
+  await expect(slot.locator('input[type=file]:not([capture])')).toHaveCount(1);
+  await addPhoto(page.locator('.present-card'), 'The gift');
+  await expectPhoto(page.locator('.present-card'), 'The gift');
+  await page.screenshot({ path: 'output/screens/giving-mobile.png', fullPage: true });
+});
+
+test('@mobile the Help page shows the guide to anyone, signed in or not', async ({ page }) => {
+  /** @type {string[]} */
+  const problems = [];
+  page.on('pageerror', (error) => problems.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') problems.push(message.text());
+  });
+  await page.goto('/login.html');
+  await page.getByRole('link', { name: 'How Santa Pack works' }).click();
+  await expect(page.getByRole('heading', { name: 'How Santa Pack works', level: 1 })).toBeVisible();
+  await page.getByRole('navigation', { name: 'On this page' }).getByRole('link', { name: 'Photos' }).click();
+  await expect(page).toHaveURL(/#photos$/);
+  const photos = page.getByRole('table').filter({ hasText: 'Taken by' });
+  await expect(photos.getByRole('row', { name: /Wrapped/ })).toContainText('the receiver during guessing');
+  await expect(page.locator('.help-guide strong', { hasText: 'Take photo' }).first()).toBeVisible();
+  await page.screenshot({ path: 'output/screens/help.png', fullPage: true });
+  expect(problems).toEqual([]);
 });

@@ -53,6 +53,15 @@ CI (`.github/workflows/ci.yml`) runs all of the above plus `npm audit`, dependen
 - **First admin:** run `node --env-file=.env scripts/seed-admin.mjs <email>`.
 - **Health:** `GET /api/health`.
 
+### Present photos
+
+Givers can add a photo of the gift and of it wrapped; receivers can add one of it unwrapped (see [docs/guide.md](docs/guide.md#photos)). They're stored in the private bucket `hopeful-machine-466912-t2-santa-pack-photos` (us-east4, public access prevention on), which only `santa-pack-runtime` can use (`roles/storage.objectUser` on the bucket). `PHOTOS_BUCKET` in `deploy-env.yaml` names it.
+
+- The browser resizes photos to JPEG (at most 1600 px, which also strips location data) and uploads them with `PUT /api/presents/:id/photos/:kind`. The server checks the bytes are an image (JPEG, PNG or WebP, 6 MB at most).
+- `GET /api/presents/:id/photos/:kind` needs the sign-in token, and serves a photo only if `projectPresent` lists it for that viewer. The browser shows it from a `blob:` URL. There are no public or long-lived photo links.
+- Deleting a present, round or family deletes its photos (`families/{family}/rounds/{round}/presents/{present}/{kind}`).
+- Locally and in CI, the Firebase Storage emulator stands in for the bucket.
+
 ### Sign-in emails
 
 Password reset and email confirmation emails are written and sent by the app, from `Santa Pack <noreply@mg.santapack.me>`, and their links open `/action.html` on santapack.me. The wording is in `server/firebase/signin-mail.js`; the page is `app/src/pages/action.js`. This follows framblywish (`wish.santapack.me`), which uses the same Mailgun domain.

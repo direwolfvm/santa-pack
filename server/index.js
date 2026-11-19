@@ -16,7 +16,8 @@ if (config.backend === 'firebase') {
   const { default: createFirebaseApp } = await import('./firebase/app.js');
   const { logSender, mailgunSender } = await import('./firebase/mail.js');
   const { createSigninMail } = await import('./firebase/signin-mail.js');
-  const { db, auth } = connectFirebase(config);
+  const { createPhotoStore } = await import('./firebase/photos.js');
+  const { db, auth, bucket } = connectFirebase(config);
   // Mailgun when configured; on the emulators, emails go to the log instead.
   const send = config.mailgun
     ? mailgunSender(config.mailgun)
@@ -25,6 +26,7 @@ if (config.backend === 'firebase') {
       : undefined;
   app = createFirebaseApp({
     store: createStore(db),
+    photos: createPhotoStore(bucket),
     auth,
     webConfig: config.webConfig,
     allowedOrigins: config.allowedOrigins,

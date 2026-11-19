@@ -1,0 +1,12 @@
+rules_version = '2';
+// Clients never touch Storage directly: the server reads and writes present
+// photos after checking the game's rules (server/firebase/photos.js). The
+// production bucket isn't a Firebase Storage bucket at all; these rules are
+// for the local emulator.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -36,6 +36,7 @@ export default defineConfig({
       FIREBASE_TENANT_ID: TENANT_ID,
       FIREBASE_API_KEY: 'fake-api-key',
       FIREBASE_AUTH_DOMAIN: 'localhost',
+      PHOTOS_BUCKET: 'demo-santa-pack-photos',
       APP_BASE_URL: `http://127.0.0.1:${PORT}`,
     },
   },

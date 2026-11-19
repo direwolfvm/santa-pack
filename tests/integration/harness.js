@@ -7,14 +7,20 @@ import { getAuth } from 'firebase-admin/auth';
 import request from 'supertest';
 import { connectFirebase } from '../../server/firebase/admin.js';
 import createFirebaseApp from '../../server/firebase/app.js';
+import { createPhotoStore } from '../../server/firebase/photos.js';
 import { createSigninMail } from '../../server/firebase/signin-mail.js';
 import { createStore } from '../../server/firebase/store.js';
 
 export const PROJECT_ID = 'demo-santa-pack';
 export const DATABASE_ID = 'santa-pack';
 export const BASE_URL = 'https://santapack.test';
+export const PHOTOS_BUCKET = 'demo-santa-pack-photos';
 
-if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_AUTH_EMULATOR_HOST) {
+if (
+  !process.env.FIRESTORE_EMULATOR_HOST ||
+  !process.env.FIREBASE_AUTH_EMULATOR_HOST ||
+  !process.env.FIREBASE_STORAGE_EMULATOR_HOST
+) {
   throw new Error('Run integration tests with `npm run test:integration` so the emulators are running.');
 }
 
@@ -25,7 +31,12 @@ export async function startHarness() {
     .tenantManager()
     .createTenant({ displayName: 'santa-test', emailSignInConfig: { enabled: true, passwordRequired: true } });
 
-  const { db, auth } = connectFirebase({ projectId: PROJECT_ID, databaseId: DATABASE_ID, tenantId: tenant.tenantId });
+  const { db, auth, bucket } = connectFirebase({
+    projectId: PROJECT_ID,
+    databaseId: DATABASE_ID,
+    tenantId: tenant.tenantId,
+    photosBucket: PHOTOS_BUCKET,
+  });
   const store = createStore(db);
   // Sign-in emails are captured here instead of sent.
   /** @type {import('../../server/firebase/mail.js').Message[]} */
@@ -39,6 +50,7 @@ export async function startHarness() {
   });
   const app = createFirebaseApp({
     mail,
+    photos: createPhotoStore(bucket),
     store,
     auth,
     webConfig: { apiKey: 'fake', authDomain: 'localhost', projectId: PROJECT_ID, tenantId: tenant.tenantId },
@@ -100,5 +112,5 @@ export async function startHarness() {
     };
   }
 
-  return { app, db, auth, store, outbox, tenantId: tenant.tenantId, signUp, signIn, as };
+  return { app, db, auth, bucket, store, outbox, tenantId: tenant.tenantId, signUp, signIn, as };
 }

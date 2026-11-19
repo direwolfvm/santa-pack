@@ -1,7 +1,8 @@
 import express from 'express';
 import { fileURLToPath } from 'node:url';
 import { errorHandler, noStore } from '../http.js';
-import { requireSameOriginJson, securityHeaders } from '../security.js';
+import { PHOTO_TYPES, requireSameOriginJson, securityHeaders } from '../security.js';
+import { MAX_PHOTO_BYTES } from './photos.js';
 import { createApi } from './api.js';
 import { createAuth } from './auth.js';
 import { createAuthMailApi } from './auth-mail-api.js';
@@ -15,6 +16,7 @@ const webRoot = fileURLToPath(new URL('../../dist', import.meta.url));
  *
  * @param {object} deps
  * @param {import('./store.js').Store} deps.store
+ * @param {import('./photos.js').PhotoStore} deps.photos
  * @param {import('firebase-admin/auth').TenantAwareAuth} deps.auth
  * @param {{ apiKey: string, authDomain: string, projectId: string, tenantId: string }} deps.webConfig
  *   Public Firebase web config for the browser.
@@ -22,7 +24,7 @@ const webRoot = fileURLToPath(new URL('../../dist', import.meta.url));
  * @param {import('./signin-mail.js').SigninMail} [deps.mail] Sends the sign-in emails. Without it the
  *   browser asks Google's sign-in service to send them.
  */
-export default function createFirebaseApp({ store, auth, webConfig, allowedOrigins, mail }) {
+export default function createFirebaseApp({ store, photos, auth, webConfig, allowedOrigins, mail }) {
   const app = express();
   app.disable('x-powered-by');
   // Cloud Run puts one proxy in front of the app.
@@ -43,9 +45,16 @@ export default function createFirebaseApp({ store, auth, webConfig, allowedOrigi
   });
 
   const { verifiedToken, requireUser, requireAdmin } = createAuth({ auth, store });
-  app.use('/api', noStore, requireSameOriginJson(allowedOrigins), express.json({ limit: '80kb' }));
+  app.use(
+    '/api',
+    noStore,
+    requireSameOriginJson(allowedOrigins),
+    express.json({ limit: '80kb' }),
+    // Photo uploads are the one non-JSON body (see requireSameOriginJson).
+    express.raw({ type: PHOTO_TYPES, limit: MAX_PHOTO_BYTES }),
+  );
   if (mail) app.use('/api', createAuthMailApi({ store, mail, verifiedToken }));
-  app.use('/api', createApi({ store, requireUser, requireAdmin }));
+  app.use('/api', createApi({ store, photos, requireUser, requireAdmin }));
 
   // Hashed asset files can be cached for a long time; pages must revalidate.
   app.use('/assets', express.static(`${webRoot}/assets`, { immutable: true, maxAge: '365d', fallthrough: false }));

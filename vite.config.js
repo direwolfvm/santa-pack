@@ -16,12 +16,17 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       input: Object.fromEntries(
-        ['index', 'login', 'verify', 'action', 'family', 'round', 'profile', 'admin'].map((name) => [name, page(name)]),
+        ['index', 'login', 'verify', 'action', 'help', 'family', 'round', 'profile', 'admin'].map((name) => [
+          name,
+          page(name),
+        ]),
       ),
     },
   },
   server: {
     port: 5173,
+    // The Help page imports docs/guide.md from outside app/.
+    fs: { allow: ['..'] },
     proxy: { '/api': 'http://localhost:8080' },
   },
 });

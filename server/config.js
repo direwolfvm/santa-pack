@@ -13,6 +13,8 @@ const firebaseEnv = z.object({
   FIREBASE_TENANT_ID: z.string().min(1),
   FIREBASE_API_KEY: z.string().min(1),
   FIREBASE_AUTH_DOMAIN: z.string().min(1),
+  // Private Cloud Storage bucket for present photos (server/firebase/photos.js).
+  PHOTOS_BUCKET: z.string().min(1),
   APP_BASE_URL: z.url(),
   // Comma-separated extra origins allowed to send writes (for example the run.app URL).
   APP_ADDITIONAL_ORIGINS: z.string().default(''),
@@ -49,6 +51,7 @@ export function loadConfig(env) {
       projectId: c.GOOGLE_CLOUD_PROJECT,
       databaseId: c.FIRESTORE_DATABASE,
       tenantId: c.FIREBASE_TENANT_ID,
+      photosBucket: c.PHOTOS_BUCKET,
       webConfig: {
         apiKey: c.FIREBASE_API_KEY,
         authDomain: c.FIREBASE_AUTH_DOMAIN,

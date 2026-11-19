@@ -9,6 +9,8 @@ COPY app/package.json ./app/
 RUN npm ci --ignore-scripts --workspace app --include-workspace-root=false
 COPY vite.config.js ./
 COPY app ./app
+# The Help page is built from the guide.
+COPY docs/guide.md ./docs/guide.md
 RUN npm run build
 
 FROM node:22-bookworm-slim AS deps
