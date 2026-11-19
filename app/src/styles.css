@@ -864,6 +864,79 @@ button.danger {
 .present-card > button {
   align-self: flex-start;
 }
+.present-card p {
+  margin: 0;
+}
+.present-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Present photos */
+.photo-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+}
+.photo-row--small {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.photo-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+.photo-slot__link {
+  display: block;
+}
+.photo-slot__image,
+.photo-slot__empty {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  background: var(--cream);
+}
+.photo-slot__image {
+  object-fit: cover;
+  border: 1px solid var(--line);
+}
+.photo-slot__empty {
+  display: grid;
+  place-items: center;
+  font-size: 1.8rem;
+  border: 2px dashed var(--line);
+  opacity: 0.8;
+}
+.photo-slot figcaption {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.photo-slot__hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.photo-slot__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.photo-slot--small {
+  width: 64px;
+}
+.photo-slot--small figcaption {
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.photo-slot--missing .photo-slot__image {
+  opacity: 0.4;
+}
 .present-card__reveal {
   padding: 12px 14px;
   background: var(--gold-soft);
@@ -885,4 +958,26 @@ button.danger {
 }
 .muted {
   color: var(--muted);
+}
+
+/* Help page (docs/guide.md) */
+.help-contents ol {
+  margin: 0;
+  padding-left: 1.4rem;
+  columns: 2 14rem;
+}
+.help-guide h2 {
+  margin-top: 2.2rem;
+  scroll-margin-top: 1rem;
+}
+.help-guide h3 {
+  margin-top: 1.6rem;
+  scroll-margin-top: 1rem;
+}
+.help-guide li + li {
+  margin-top: 0.35rem;
+}
+.help-guide code {
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
 }

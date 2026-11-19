@@ -1,9 +1,26 @@
 {
-  "firestore": [{ "database": "santa-pack", "rules": "firebase/firestore.rules" }],
+  "firestore": [
+    {
+      "database": "santa-pack",
+      "rules": "firebase/firestore.rules"
+    }
+  ],
   "emulators": {
-    "auth": { "port": 9399 },
-    "firestore": { "port": 8389 },
-    "ui": { "enabled": false },
+    "auth": {
+      "port": 9399
+    },
+    "firestore": {
+      "port": 8389
+    },
+    "storage": {
+      "port": 9499
+    },
+    "ui": {
+      "enabled": false
+    },
     "singleProjectMode": true
+  },
+  "storage": {
+    "rules": "firebase/storage.rules"
   }
 }

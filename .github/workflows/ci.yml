@@ -120,7 +120,7 @@ jobs:
             -e SUPABASE_URL=https://example.supabase.co -e SUPABASE_ANON_KEY=ci santa-pack:ci
           docker run -d --name firebase-mode -p 8082:8080 \
             -e BACKEND=firebase -e GOOGLE_CLOUD_PROJECT=demo-ci -e FIRESTORE_DATABASE=santa-pack \
-            -e FIREBASE_TENANT_ID=ci -e FIREBASE_API_KEY=ci -e FIREBASE_AUTH_DOMAIN=localhost \
+            -e FIREBASE_TENANT_ID=ci -e FIREBASE_API_KEY=ci -e FIREBASE_AUTH_DOMAIN=localhost -e PHOTOS_BUCKET=ci \
             -e APP_BASE_URL=http://localhost:8082 santa-pack:ci
           for port in 8081 8082; do
             for _ in $(seq 1 20); do curl -fs "http://localhost:$port/api/health" && break; sleep 1; done

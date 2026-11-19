@@ -17,6 +17,12 @@
  * @property {string} cloakedName
  * @property {string | null} guessUid
  * @property {string | null} revealedAt ISO timestamp, set once by the receiver.
+ * @property {Partial<Record<PhotoKind, string>>} [photos] When each photo was added (ISO timestamp).
+ *
+ * @typedef {'gift' | 'wrapped' | 'unwrapped'} PhotoKind
+ *   gift: the present itself, by the giver. wrapped: the wrapped present, by
+ *   the giver, so the receiver can tell which one they're guessing about.
+ *   unwrapped: by the receiver once it's open, while they guess the giver.
  *
  * @typedef {object} Viewer
  * @property {string} uid
@@ -25,6 +31,23 @@
 
 /** @type {readonly Stage[]} */
 export const STAGES = ['giving', 'guessing', 'complete'];
+
+/** @type {readonly PhotoKind[]} */
+export const PHOTO_KINDS = ['gift', 'wrapped', 'unwrapped'];
+
+/**
+ * The photos in a present that may be shown, keyed by kind.
+ * @param {Present} present @param {readonly PhotoKind[]} kinds
+ */
+function photosOf(present, kinds) {
+  /** @type {Partial<Record<PhotoKind, string>>} */
+  const shown = {};
+  for (const kind of kinds) {
+    const at = present.photos?.[kind];
+    if (at) shown[kind] = at;
+  }
+  return shown;
+}
 
 /** Stage changes a manager may make: forward one step, or back one step to reopen. */
 const STAGE_MOVES = /** @type {Record<Stage, Stage[]>} */ ({
@@ -48,6 +71,10 @@ export function canMoveStage(from, to) {
  *   name and their own guess, and the rest only after revealing that present.
  * - Everyone else (managers included) sees nothing until the round is complete.
  *
+ * Photos follow the same rules. Before the reveal a receiver sees only the
+ * wrapped photo and their own unwrapped one, never the giver's photo of the
+ * gift. `photos` lists the ones this viewer may load.
+ *
  * @param {Present} present
  * @param {Stage} stage
  * @param {Viewer} viewer
@@ -64,6 +91,7 @@ export function projectPresent(present, stage, viewer) {
     guessUid: present.guessUid,
     revealed: Boolean(present.revealedAt),
     correct: present.guessUid ? present.guessUid === present.giverUid : null,
+    photos: photosOf(present, PHOTO_KINDS),
   };
 
   if (viewer.isAdmin || stage === 'complete' || viewer.uid === present.giverUid) return full;
@@ -77,7 +105,28 @@ export function projectPresent(present, stage, viewer) {
     cloakedName: present.cloakedName,
     guessUid: present.guessUid,
     revealed: false,
+    photos: photosOf(present, ['wrapped', 'unwrapped']),
   };
+}
+
+/**
+ * Why adding or removing a photo is refused, or null when it is allowed.
+ * The giver adds the gift and wrapped photos while giving; the receiver adds
+ * the unwrapped photo while guessing.
+ *
+ * @param {PhotoKind} kind
+ * @param {Present} present
+ * @param {Stage} stage
+ * @param {Viewer} viewer
+ * @returns {string | null}
+ */
+export function photoActionError(kind, present, stage, viewer) {
+  if (kind === 'unwrapped') {
+    if (viewer.uid !== present.receiverUid) return 'Only the receiver can add the unwrapped photo.';
+    return stage === 'guessing' ? null : 'The unwrapped photo can only be added while the round is guessing.';
+  }
+  if (viewer.uid !== present.giverUid) return 'Only the giver can add photos of the gift.';
+  return stage === 'giving' ? null : 'Photos of the gift can only be changed while the round is giving.';
 }
 
 /**

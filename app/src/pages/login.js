@@ -108,6 +108,7 @@ replace(
   signInStatus,
   h('details', { class: 'auth-recovery' }, h('summary', null, 'Forgot your password?'), resetForm, resetStatus),
   h('div', { class: 'auth-divider' }, 'New around here?'),
+  h('p', null, h('a', { href: '/help.html' }, 'How Santa Pack works')),
   h('h2', null, 'Create an account'),
   signUpForm,
   signUpStatus,

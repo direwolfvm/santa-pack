@@ -9,6 +9,7 @@ const firebase = {
   FIREBASE_TENANT_ID: 'santa-pack-abc12',
   FIREBASE_API_KEY: 'public-web-key',
   FIREBASE_AUTH_DOMAIN: 'demo-santa-pack.firebaseapp.com',
+  PHOTOS_BUCKET: 'demo-photos',
   APP_BASE_URL: 'https://santapack.me',
   APP_ADDITIONAL_ORIGINS: 'https://santa-pack-xyz.a.run.app',
 };

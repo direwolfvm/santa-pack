@@ -2,18 +2,31 @@ import '../styles.css';
 import { api } from '../lib/api.js';
 import { h, param, replace } from '../lib/dom.js';
 import { renderShell, requireSignedIn, showPageError } from '../lib/shell.js';
-import { announce, confirmDialog, emptyState, onSubmit, stageBadge, table, withBusy } from '../lib/ui.js';
+import { photoSlot, removePhoto, uploadPhoto } from '../lib/photos.js';
+import {
+  announce,
+  announceError,
+  confirmDialog,
+  emptyState,
+  onSubmit,
+  stageBadge,
+  table,
+  withBusy,
+} from '../lib/ui.js';
 
 /**
  * What the server sends. It decides which fields each person may see, so a
  * cloaked present simply has no name, description or giver.
  *
  * @typedef {'giving' | 'guessing' | 'complete'} Stage
+ * @typedef {'gift' | 'wrapped' | 'unwrapped'} PhotoKind
  * @typedef {{ uid: string, displayName: string, guest?: boolean }} Member
  * @typedef {{
  *   id: string, receiverUid: string, cloakedName: string, guessUid: string | null, revealed: boolean,
  *   giverUid?: string, name?: string, description?: string, correct?: boolean | null,
+ *   photos?: Partial<Record<PhotoKind, string>>,
  * }} PresentView
+ *   `photos` lists only the photos this person may see, with when each was added.
  * @typedef {{ uid: string, giving: number, receiving?: number, guessedRight?: number }} PersonProgress
  * @typedef {{ totals: { presents: number, guessed: number, revealed: number }, people: PersonProgress[] }} Progress
  * @typedef {{
@@ -44,6 +57,52 @@ const asActor = (path) =>
 let view;
 /** @param {string | null | undefined} uid */
 const nameOf = (uid) => view.members.find((m) => m.uid === uid)?.displayName ?? 'Someone';
+
+const PHOTO_LABELS = /** @type {Record<PhotoKind, string>} */ ({
+  gift: 'The gift',
+  wrapped: 'Wrapped',
+  unwrapped: 'Unwrapped',
+});
+
+/**
+ * A row of a present's photos. Each slot shows the photo if this person may
+ * see it, and offers to add or change it when `editable` (the server checks
+ * again).
+ *
+ * @param {PresentView} present
+ * @param {Array<[PhotoKind, { label?: string, hint?: string, editable?: boolean }]>} slots
+ * @param {{ small?: boolean }} [options]
+ */
+function photoRow(present, slots, { small = false } = {}) {
+  const figures = slots.map(([kind, { label, hint, editable }]) => {
+    const path = asActor(`/api/presents/${encodeURIComponent(present.id)}/photos/${kind}`);
+    return photoSlot({
+      path,
+      version: present.photos?.[kind],
+      label: label ?? PHOTO_LABELS[kind],
+      hint,
+      editable,
+      small,
+      onChange: async (action) => {
+        try {
+          if ('upload' in action) {
+            await uploadPhoto(path, action.upload);
+            announce('Photo saved.');
+          } else {
+            if (!(await confirmDialog('Remove this photo?', { confirmLabel: 'Remove', danger: true }))) return;
+            await removePhoto(path);
+            announce('Photo removed.');
+          }
+          await load();
+        } catch (error) {
+          announceError(error);
+        }
+      },
+    });
+  });
+  const shown = figures.filter((figure) => figure !== null);
+  return shown.length ? h('div', { class: small ? 'photo-row photo-row--small' : 'photo-row' }, shown) : null;
+}
 
 async function load() {
   view = await api(asActor(roundPath));
@@ -137,7 +196,7 @@ function givingSection() {
   const mine = view.presents.filter((p) => p.giverUid === view.me.uid);
   const others = view.members.filter((m) => m.uid !== view.me.uid);
 
-  const rows = mine.map((present) => {
+  const cards = mine.map((present) => {
     const remove = h('button', { type: 'button', class: 'secondary button--small' }, 'Remove');
     remove.addEventListener('click', () =>
       withBusy(remove, async () => {
@@ -151,13 +210,17 @@ function givingSection() {
       fillForm(present);
     });
     return h(
-      'tr',
-      null,
-      h('td', null, nameOf(present.receiverUid)),
-      h('td', null, present.name ?? ''),
-      h('td', null, present.cloakedName || '—'),
-      h('td', null, present.description || '—'),
-      h('td', null, edit, remove),
+      'article',
+      { class: 'present-card' },
+      h('h3', null, present.name ?? ''),
+      h('p', { class: 'muted' }, `For ${nameOf(present.receiverUid)}`),
+      h('p', null, 'Cloaked as ', h('em', null, present.cloakedName || '(no cloaked name)')),
+      present.description ? h('p', { class: 'muted' }, present.description) : null,
+      photoRow(present, [
+        ['gift', { editable: true, hint: 'Only you see this until it’s unwrapped.' }],
+        ['wrapped', { editable: true, hint: 'They’ll see this while guessing, so they know which one it is.' }],
+      ]),
+      h('div', { class: 'present-card__actions' }, edit, remove),
     );
   });
 
@@ -228,9 +291,7 @@ function givingSection() {
     'section',
     { 'aria-labelledby': 'giving-heading' },
     h('h2', { id: 'giving-heading' }, 'Your gifts'),
-    rows.length
-      ? table(['For', 'Gift', 'Cloaked name', 'Notes', 'Actions'], rows, 'Gifts you are giving')
-      : emptyState('You haven’t added any gifts yet.'),
+    cards.length ? h('div', { class: 'present-grid' }, cards) : emptyState('You haven’t added any gifts yet.'),
     h('div', { class: 'panel' }, h('h3', null, 'Add a gift'), form),
   );
 }
@@ -245,6 +306,11 @@ function guessingSection() {
     const card = h('article', { class: 'present-card' }, h('h3', null, present.cloakedName || 'A mystery package'));
     if (present.revealed) {
       card.append(
+        photoRow(present, [
+          ['gift', { label: `${nameOf(present.giverUid)}’s photo` }],
+          ['wrapped', {}],
+          ['unwrapped', { label: 'Your photo', editable: true }],
+        ]) ?? '',
         h(
           'div',
           { class: 'present-card__reveal' },
@@ -298,7 +364,14 @@ function guessingSection() {
         await load();
       }),
     );
-    card.append(form, reveal);
+    card.append(
+      photoRow(present, [
+        ['wrapped', {}],
+        ['unwrapped', { editable: true, hint: 'Opened it? Snap a photo before you guess.' }],
+      ]) ?? '',
+      form,
+      reveal,
+    );
     return card;
   });
 
@@ -318,7 +391,7 @@ function myGiftsSection() {
     { 'aria-labelledby': 'my-gifts-heading' },
     h('h2', { id: 'my-gifts-heading' }, 'Gifts you gave'),
     table(
-      ['For', 'Gift', 'Cloaked name', 'Their guess'],
+      ['For', 'Gift', 'Cloaked name', 'Their guess', 'Photos'],
       mine.map((p) =>
         h(
           'tr',
@@ -327,6 +400,19 @@ function myGiftsSection() {
           h('td', null, p.name ?? ''),
           h('td', null, p.cloakedName || '—'),
           h('td', null, p.revealed ? (p.guessUid ? nameOf(p.guessUid) : 'No guess') : 'Still a secret'),
+          h(
+            'td',
+            null,
+            photoRow(
+              p,
+              [
+                ['gift', {}],
+                ['wrapped', {}],
+                ['unwrapped', { label: `${nameOf(p.receiverUid)}’s photo` }],
+              ],
+              { small: true },
+            ) ?? '—',
+          ),
         ),
       ),
       'Gifts you gave',
@@ -351,6 +437,19 @@ function revealSection() {
         { class: p.correct ? 'result--correct' : 'result--wrong' },
         p.correct ? 'Correct' : p.guessUid ? 'Fooled' : '—',
       ),
+      h(
+        'td',
+        null,
+        photoRow(
+          p,
+          [
+            ['gift', { label: `${nameOf(p.giverUid)}’s photo` }],
+            ['wrapped', {}],
+            ['unwrapped', { label: `${nameOf(p.receiverUid)}’s photo` }],
+          ],
+          { small: true },
+        ) ?? '—',
+      ),
     ),
   );
   const scores = view.members
@@ -366,7 +465,7 @@ function revealSection() {
     { 'aria-labelledby': 'reveal-heading' },
     h('h2', { id: 'reveal-heading' }, 'Every gift, unwrapped'),
     rows.length
-      ? table(['From', 'To', 'Gift', 'Cloaked name', 'Guess', 'Result'], rows, 'All gifts')
+      ? table(['From', 'To', 'Gift', 'Cloaked name', 'Guess', 'Result', 'Photos'], rows, 'All gifts')
       : emptyState('No gifts were given in this round.'),
     scores.length
       ? h(

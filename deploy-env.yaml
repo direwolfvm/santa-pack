@@ -7,6 +7,8 @@ FIRESTORE_DATABASE: 'santa-pack'
 FIREBASE_TENANT_ID: 'santa-pack-y6e8u'
 FIREBASE_API_KEY: 'AIzaSyC0eYv7VEZ1_0LB0DlLdy2mo2vUrNXn4Ck'
 FIREBASE_AUTH_DOMAIN: 'hopeful-machine-466912-t2.firebaseapp.com'
+# Private bucket for present photos; only santa-pack-runtime can read or write it.
+PHOTOS_BUCKET: 'hopeful-machine-466912-t2-santa-pack-photos'
 APP_BASE_URL: 'https://santapack.me'
 APP_ADDITIONAL_ORIGINS: 'https://santa-pack-jll5e6reca-uk.a.run.app,https://santa-pack-983969754780.us-east4.run.app'
 # Sign-in emails (server/firebase/signin-mail.js). The key is a secret; see cloudbuild.yaml.

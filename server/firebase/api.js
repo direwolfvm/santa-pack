@@ -1,7 +1,16 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { HttpError } from '../http.js';
-import { canMoveStage, presentActionError, projectPresent, roundProgress, STAGES } from '../game/rules.js';
+import {
+  canMoveStage,
+  PHOTO_KINDS,
+  photoActionError,
+  presentActionError,
+  projectPresent,
+  roundProgress,
+  STAGES,
+} from '../game/rules.js';
+import { photoPrefix, sniffImage } from './photos.js';
 import { currentUser } from './auth.js';
 
 /**
@@ -18,6 +27,7 @@ const id = z
   .regex(/^[^/]+$/);
 const name = z.string().trim().min(1, 'Required').max(120);
 const longText = z.string().trim().max(2000);
+const photoKind = z.enum(PHOTO_KINDS);
 
 const schemas = {
   displayName: z.object({ displayName: z.string().trim().min(1).max(60) }),
@@ -62,9 +72,14 @@ const viewerOf = (res) => {
 /**
  * The API for the Firebase backend. Every route requires a signed-in user.
  *
- * @param {{ store: Store, requireUser: import('express').RequestHandler, requireAdmin: import('express').RequestHandler }} deps
+ * @param {{
+ *   store: Store,
+ *   photos: import('./photos.js').PhotoStore,
+ *   requireUser: import('express').RequestHandler,
+ *   requireAdmin: import('express').RequestHandler,
+ * }} deps
  */
-export function createApi({ store, requireUser, requireAdmin }) {
+export function createApi({ store, photos, requireUser, requireAdmin }) {
   const api = Router();
 
   /**
@@ -197,6 +212,7 @@ export function createApi({ store, requireUser, requireAdmin }) {
   api.delete('/families/:familyId', requireAdmin, async (req, res) => {
     const familyId = param(req, 'familyId');
     await store.deleteFamily(familyId);
+    await photos.removeAll(photoPrefix({ familyId }));
     await store.audit(currentUser(res).uid, 'family.delete', { familyId });
     res.status(204).end();
   });
@@ -294,7 +310,9 @@ export function createApi({ store, requireUser, requireAdmin }) {
 
   api.delete('/rounds/:roundId', requireAdmin, async (req, res) => {
     const roundId = param(req, 'roundId');
+    const round = await store.getRound(roundId);
     await store.deleteRound(roundId);
+    if (round) await photos.removeAll(photoPrefix({ familyId: round.familyId }, round));
     await store.audit(currentUser(res).uid, 'round.delete', { roundId });
     res.status(204).end();
   });
@@ -385,7 +403,73 @@ export function createApi({ store, requireUser, requireAdmin }) {
       const refusal = presentActionError('delete', present, round.stage, viewer);
       if (refusal) throw new HttpError(403, refusal);
     });
+    await photos.removeAll(photoPrefix(existing, { id: existing.roundId }, existing));
     res.status(204).end();
+  });
+
+  // ---- photos ----
+  // Each present can have a photo of the gift and of it wrapped (by the giver)
+  // and of it unwrapped (by the receiver). Who may see or change each one is
+  // decided by projectPresent and photoActionError, like everything else.
+
+  /** The present, its round, and who is acting (the user, or a guest they play for). @param {import('express').Request} req @param {Response} res */
+  async function presentContext(req, res) {
+    const present = await store.getPresent(param(req, 'presentId'));
+    if (!present) throw new HttpError(404, 'That present was not found.');
+    const { isManager } = await familyAccess(present.familyId, currentUser(res));
+    const actor = await actorFor(req, res, present.familyId, isManager);
+    const round = await store.getRound(present.roundId);
+    if (!round) throw new HttpError(404, 'That gift round no longer exists.');
+    return { present, round, actor };
+  }
+
+  api.get('/presents/:presentId/photos/:kind', async (req, res) => {
+    const kind = photoKind.parse(req.params.kind);
+    const { present, round, actor } = await presentContext(req, res);
+    // The same 404 whether the photo is hidden from this viewer or doesn't exist.
+    if (!projectPresent(present, round.stage, actor)?.photos?.[kind]) throw new HttpError(404, 'No photo here.');
+    const photo = await photos.read(present, kind);
+    if (!photo) throw new HttpError(404, 'No photo here.');
+    res.type(photo.contentType).set('X-Content-Type-Options', 'nosniff').send(photo.data);
+  });
+
+  api.put('/presents/:presentId/photos/:kind', async (req, res) => {
+    const kind = photoKind.parse(req.params.kind);
+    const data = Buffer.isBuffer(req.body) ? req.body : null;
+    if (!data?.length) throw new HttpError(400, 'Send a photo.');
+    const contentType = sniffImage(data);
+    if (!contentType) throw new HttpError(400, 'Photos must be JPEG, PNG or WebP images.');
+    const { present, round, actor } = await presentContext(req, res);
+    const refusal = photoActionError(kind, present, round.stage, actor);
+    if (refusal) throw new HttpError(403, refusal);
+    await store.consumeRateLimit(`photo:${currentUser(res).uid}`, 60, 60 * 60_000);
+
+    await photos.save(present, kind, data, contentType);
+    try {
+      const updated = await store.updatePresent(present.id, (current, currentRound) => {
+        const late = photoActionError(kind, current, currentRound.stage, actor);
+        if (late) throw new HttpError(403, late);
+        return { photos: { ...current.photos, [kind]: new Date().toISOString() } };
+      });
+      res.json(projectPresent(updated.present, updated.round.stage, actor));
+    } catch (error) {
+      // Refused after all (the stage moved on): don't leave a photo the present doesn't list.
+      if (!present.photos?.[kind]) await photos.remove(present, kind);
+      throw error;
+    }
+  });
+
+  api.delete('/presents/:presentId/photos/:kind', async (req, res) => {
+    const kind = photoKind.parse(req.params.kind);
+    const { present, actor } = await presentContext(req, res);
+    const updated = await store.updatePresent(present.id, (current, currentRound) => {
+      const refusal = photoActionError(kind, current, currentRound.stage, actor);
+      if (refusal) throw new HttpError(403, refusal);
+      const { [kind]: _removed, ...rest } = current.photos ?? {};
+      return { photos: rest };
+    });
+    await photos.remove(present, kind);
+    res.json(projectPresent(updated.present, updated.round.stage, actor));
   });
 
   // ---- site admin ----

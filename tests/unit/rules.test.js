@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { canMoveStage, presentActionError, projectPresent, roundProgress, STAGES } from '../../server/game/rules.js';
+import {
+  canMoveStage,
+  photoActionError,
+  presentActionError,
+  projectPresent,
+  roundProgress,
+  STAGES,
+} from '../../server/game/rules.js';
 
 /** @type {import('../../server/game/rules.js').Present} */
 const present = {
@@ -60,7 +67,46 @@ test('a cloaked present carries no secret field at all', () => {
     cloakedName: 'A long winter nap',
     guessUid: 'cousin',
     revealed: false,
+    photos: {},
   });
+});
+
+test('before the reveal a receiver sees the wrapped photo and their own, never the gift photo', () => {
+  const withPhotos = {
+    ...present,
+    photos: { gift: '2026-12-01T00:00:00Z', wrapped: '2026-12-02T00:00:00Z', unwrapped: '2026-12-24T00:00:00Z' },
+  };
+  /** @param {import('../../server/game/rules.js').Stage} stage @param {keyof typeof viewers} who @param {object} [extra] */
+  const listed = (stage, who, extra = {}) =>
+    Object.keys(projectPresent({ ...withPhotos, ...extra }, stage, viewers[who])?.photos ?? {}).sort();
+  assert.deepEqual(listed('guessing', 'receiver'), ['unwrapped', 'wrapped']);
+  assert.deepEqual(listed('guessing', 'receiver', { revealedAt: '2026-12-25T00:00:00Z' }), [
+    'gift',
+    'unwrapped',
+    'wrapped',
+  ]);
+  assert.deepEqual(listed('giving', 'receiver'), []);
+  assert.deepEqual(listed('guessing', 'other'), []);
+  assert.deepEqual(listed('guessing', 'giver'), ['gift', 'unwrapped', 'wrapped']);
+  assert.deepEqual(listed('complete', 'other'), ['gift', 'unwrapped', 'wrapped']);
+});
+
+test('photo changes by kind, role and stage', () => {
+  /** @type {Array<[import('../../server/game/rules.js').PhotoKind, keyof typeof viewers, import('../../server/game/rules.js').Stage, boolean]>} */
+  const cases = [
+    ['gift', 'giver', 'giving', true],
+    ['wrapped', 'giver', 'giving', true],
+    ['gift', 'giver', 'guessing', false],
+    ['wrapped', 'receiver', 'giving', false],
+    ['unwrapped', 'receiver', 'guessing', true],
+    ['unwrapped', 'receiver', 'giving', false],
+    ['unwrapped', 'receiver', 'complete', false],
+    ['unwrapped', 'giver', 'guessing', false],
+    ['gift', 'admin', 'giving', false],
+  ];
+  for (const [photo, who, stage, allowed] of cases) {
+    assert.equal(photoActionError(photo, present, stage, viewers[who]) === null, allowed, `${who} ${photo} ${stage}`);
+  }
 });
 
 test('revealing shows the receiver everything and scores the guess', () => {

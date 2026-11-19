@@ -117,6 +117,20 @@ export async function requireSignedIn(shell) {
   return me;
 }
 
+/**
+ * For public pages (Help): show the navigation if someone is signed in, and
+ * nothing otherwise. Never redirects.
+ * @param {ReturnType<typeof renderShell>} shell
+ */
+export async function showNavIfSignedIn(shell) {
+  try {
+    const user = await currentFirebaseUser();
+    if (user?.emailVerified) drawNav(shell.nav, await api('/api/me'));
+  } catch {
+    // Not signed in, or the API is unreachable: the page works without the menu.
+  }
+}
+
 /** @param {HTMLElement} header @param {MeResponse} me */
 function drawNav(header, me) {
   const here = window.location.pathname;
@@ -142,7 +156,7 @@ function drawNav(header, me) {
       h(
         'nav',
         { class: 'site-nav', 'aria-label': 'Primary' },
-        h('ul', { class: 'site-nav__primary' }, link('Families', '/')),
+        h('ul', { class: 'site-nav__primary' }, link('Families', '/'), link('How it works', '/help.html')),
         h(
           'div',
           { class: 'site-nav__secondary' },
