@@ -12,9 +12,10 @@
 
 export const MAX_PHOTO_BYTES = 6 * 1024 * 1024;
 
-/** Identify an image by its leading bytes; the uploader's claim is ignored. @param {Buffer} data */
+/** Identify an image by its leading bytes; the uploader's claim is ignored. @param {unknown} data */
 export function sniffImage(data) {
-  if (data.length < 12) return null;
+  // Request bodies can be strings, arrays or objects; only raw bytes are photos.
+  if (!Buffer.isBuffer(data) || data.length < 12) return null;
   if (data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff) return 'image/jpeg';
   if (data[0] === 0x89 && data.toString('latin1', 1, 4) === 'PNG') return 'image/png';
   if (data.toString('latin1', 0, 4) === 'RIFF' && data.toString('latin1', 8, 12) === 'WEBP') return 'image/webp';
