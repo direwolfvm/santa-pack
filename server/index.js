@@ -1,4 +1,11 @@
 import { loadConfig } from './config.js';
+import { connectFirebase } from './firebase/admin.js';
+import createFirebaseApp from './firebase/app.js';
+import { createFramblywish } from './firebase/framblywish.js';
+import { logSender, mailgunSender } from './firebase/mail.js';
+import { createPhotoStore } from './firebase/photos.js';
+import { createSigninMail } from './firebase/signin-mail.js';
+import { createStore } from './firebase/store.js';
 
 let config;
 try {
@@ -8,47 +15,25 @@ try {
   process.exit(1);
 }
 
-/** @type {import('express').Express} */
-let app;
-if (config.backend === 'firebase') {
-  const { connectFirebase } = await import('./firebase/admin.js');
-  const { createStore } = await import('./firebase/store.js');
-  const { default: createFirebaseApp } = await import('./firebase/app.js');
-  const { logSender, mailgunSender } = await import('./firebase/mail.js');
-  const { createSigninMail } = await import('./firebase/signin-mail.js');
-  const { createFramblywish } = await import('./firebase/framblywish.js');
-  const { createPhotoStore } = await import('./firebase/photos.js');
-  const { db, auth, bucket } = connectFirebase(config);
-  // Mailgun when configured; on the emulators, emails go to the log instead.
-  const send = config.mailgun
-    ? mailgunSender(config.mailgun)
-    : process.env.FIREBASE_AUTH_EMULATOR_HOST
-      ? logSender
-      : undefined;
-  app = createFirebaseApp({
-    store: createStore(db),
-    photos: createPhotoStore(bucket),
-    framblywish: config.framblywishUrl ? createFramblywish({ baseUrl: config.framblywishUrl }) : undefined,
-    auth,
-    webConfig: config.webConfig,
-    allowedOrigins: config.allowedOrigins,
-    mail: send ? createSigninMail({ auth, send, baseUrl: config.baseUrl }) : undefined,
-  });
-} else {
-  const { default: createApp } = await import('./app.js');
-  const { createSupabase } = await import('./db/supabaseClient.js');
-  const { default: createFamiliesRouter } = await import('./routes/families.js');
-  const { default: createPresentsRouter } = await import('./routes/presents.js');
-  const supabase = createSupabase(config.supabaseUrl, config.supabaseAnonKey);
-  app = createApp({
-    presentsRoutes: createPresentsRouter(supabase),
-    familiesRoutes: createFamiliesRouter(supabase),
-    publicConfig: { supabaseUrl: config.supabaseUrl, supabaseAnonKey: config.supabaseAnonKey },
-  });
-}
+const { db, auth, bucket } = connectFirebase(config);
+// Mailgun when configured; on the emulators, emails go to the log instead.
+const send = config.mailgun
+  ? mailgunSender(config.mailgun)
+  : process.env.FIREBASE_AUTH_EMULATOR_HOST
+    ? logSender
+    : undefined;
+const app = createFirebaseApp({
+  store: createStore(db),
+  photos: createPhotoStore(bucket),
+  framblywish: config.framblywishUrl ? createFramblywish({ baseUrl: config.framblywishUrl }) : undefined,
+  auth,
+  webConfig: config.webConfig,
+  allowedOrigins: config.allowedOrigins,
+  mail: send ? createSigninMail({ auth, send, baseUrl: config.baseUrl }) : undefined,
+});
 
 const server = app.listen(config.port, () => {
-  console.log(`Santa Pack (${config.backend}) is ready at http://localhost:${config.port}`);
+  console.log(`Santa Pack is ready at http://localhost:${config.port}`);
 });
 
 // Cloud Run sends SIGTERM before stopping an instance.

@@ -7,9 +7,7 @@
 # of santa-pack-deployer. The "production" environment only allows main, so a
 # pull request can never deploy. No cloud keys are stored in GitHub.
 #
-# The job is skipped until the repository variable DEPLOY_ENABLED is "true".
-# That is switched on at the cutover from Supabase, when the old Cloud Build
-# trigger (which deploys the Supabase app on every push) is disabled.
+# The job is skipped unless the repository variable DEPLOY_ENABLED is "true".
 name: Deploy
 
 on:

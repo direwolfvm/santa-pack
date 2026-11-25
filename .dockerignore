@@ -8,8 +8,6 @@ output
 tests
 docs
 dist
-examples
-supabase
 *.md
 # The Help page (app/src/pages/help.js) is built from the guide.
 !docs/guide.md

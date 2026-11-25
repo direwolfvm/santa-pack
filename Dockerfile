@@ -1,6 +1,6 @@
-# Built by the Cloud Build trigger on push to main (docker build . -f Dockerfile).
+# Built by cloudbuild.yaml from the Deploy workflow on push to main.
 
-# Build the Vite frontend (app/ -> dist/). Served only when BACKEND=firebase.
+# Build the Vite frontend (app/ -> dist/).
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -25,7 +25,6 @@ WORKDIR /app
 COPY --from=deps --chown=node:node /app/node_modules ./node_modules
 COPY --chown=node:node package.json ./
 COPY --chown=node:node server ./server
-COPY --chown=node:node web ./web
 COPY --from=build --chown=node:node /app/dist ./dist
 USER node
 EXPOSE 8080

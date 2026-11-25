@@ -14,8 +14,7 @@ if (!email) {
   process.exit(1);
 }
 
-const config = loadConfig({ ...process.env, BACKEND: 'firebase' });
-if (config.backend !== 'firebase') throw new Error('unreachable');
+const config = loadConfig(process.env);
 const { db, auth } = connectFirebase(config);
 
 const account = await auth.getUserByEmail(email).catch(() => null);

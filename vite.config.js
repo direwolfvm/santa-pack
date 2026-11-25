@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const page = (name) => fileURLToPath(new URL(`./app/${name}.html`, import.meta.url));
 
 // The Firebase-era frontend. `npm run build` writes dist/, which the server
-// serves when BACKEND=firebase. `npm run dev:web` serves it with hot reload and
+// serves. `npm run dev:web` serves it with hot reload and
 // proxies /api to the Express server on :8080.
 export default defineConfig({
   root: 'app',
