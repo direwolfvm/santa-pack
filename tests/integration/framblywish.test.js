@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { startHarness } from './harness.js';
+import { SHAPES } from '../../server/game/shapes.js';
 
 // Linking a Framblywish family, and bringing over gifts marked for Santa Pack.
 const h = await startHarness();
@@ -59,6 +60,14 @@ test('marked gifts come over once, stay secret, and skip people outside the fami
   assert.deepEqual((await bring()).body, { added: 0, updated: 0, same: 2 });
   assert.deepEqual((await mine()).map((p) => p.name).sort(), ['Cook book', 'Wool scarf']);
   assert.ok((await mine()).every((p) => p.fromFramblywish));
+  // Each is cloaked as three shapes, different from the other's.
+  const cloaks = (await mine()).map((p) => p.cloakedName);
+  for (const cloak of cloaks)
+    assert.ok(
+      cloak.split(' ').every((s) => SHAPES.includes(s)),
+      cloak,
+    );
+  assert.notEqual(cloaks[0], cloaks[1]);
   const other = await h.as(cousin).get(`/api/rounds/${round.id}`).expect(200);
   assert.deepEqual(other.body.presents, []);
   const asKid = await h.as(giver).get(`/api/rounds/${round.id}?as=guest-fw-kid-1`).expect(200);
@@ -75,6 +84,7 @@ test('edits there update it; edits here are kept', async () => {
   await h.as(giver).patch(`/api/presents/${present.id}`, { name: 'My scarf', cloakedName: 'Snake' }).expect(200);
   assert.equal((await bring()).body.updated, 0);
   assert.equal((await mine()).find((p) => p.id === present.id)?.name, 'My scarf');
+  assert.equal((await mine()).find((p) => p.id === present.id)?.cloakedName, 'Snake');
 });
 
 test('a removed present stays removed', async () => {

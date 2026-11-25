@@ -172,7 +172,15 @@ test('a whole gift round, with the gift kept secret until the reveal', async ({ 
   await pages.peter.goto(roundUrl);
   await pages.peter.locator('#receiverUid').selectOption({ label: 'Kevin' });
   await pages.peter.locator('#presentName').fill(SECRET);
-  await pages.peter.locator('#cloakedName').fill(CLOAK);
+  // The cloaked name starts as three shapes, and can be shuffled or typed over.
+  const cloak = pages.peter.locator('#cloakedName');
+  const shapes = await cloak.inputValue();
+  expect(shapes.split(' ')).toHaveLength(3);
+  for (let i = 0; i < 5 && (await cloak.inputValue()) === shapes; i += 1) {
+    await pages.peter.getByRole('button', { name: 'Shuffle shapes' }).click();
+  }
+  await expect(cloak).not.toHaveValue(shapes);
+  await cloak.fill(CLOAK);
   await pages.peter.getByRole('button', { name: 'Wrap it up' }).click();
   const peterCard = pages.peter.locator('.present-card', { hasText: SECRET });
   await expect(peterCard.getByRole('heading', { name: SECRET })).toBeVisible();
