@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { startHarness } from './harness.js';
+import { SHAPES } from '../../server/game/shapes.js';
 
 // One family, played through every stage. The tests run in order and build on
 // each other, like a real gift round.
@@ -93,6 +94,20 @@ test('giving: only the giver (and site admin) can see the present', async () => 
   const progress = (await h.as(manager).get(`/api/rounds/${roundId}`)).body.progress;
   assert.equal(progress.people.find((/** @type {{ uid: string }} */ p) => p.uid === giver.uid).giving, 1);
   assert.equal(progress.people[0].receiving, undefined, 'receiving counts would pair givers with receivers');
+});
+
+test('a gift without a cloaked name gets three shapes, and clearing it gets new ones', async () => {
+  const made = await h
+    .as(giver)
+    .post(`/api/rounds/${roundId}/presents`, { receiverUid: manager.uid, name: 'Socks' })
+    .expect(201);
+  const shapes = made.body.cloakedName.split(' ');
+  assert.equal(shapes.length, 3);
+  assert.equal(new Set(shapes).size, 3);
+  assert.ok(shapes.every((/** @type {string} */ s) => SHAPES.includes(s)));
+  const cleared = await h.as(giver).patch(`/api/presents/${made.body.id}`, { cloakedName: '' }).expect(200);
+  assert.equal(cleared.body.cloakedName.split(' ').length, 3);
+  await h.as(giver).delete(`/api/presents/${made.body.id}`).expect(204);
 });
 
 test('giving: guesses and reveals are refused, edits are allowed', async () => {

@@ -54,7 +54,7 @@ Open the round from your family page and use **Add a gift**:
 
 - **Who is it for?** Anyone else in the family.
 - **The gift.** What it really is. Only you can see this until it's unwrapped.
-- **Cloaked name.** A mysterious name the receiver sees while guessing, such as "Operation Mistletoe". Make it fun, not a giveaway.
+- **Cloaked name.** A mysterious name the receiver sees while guessing. It starts as three random shapes, such as "🔺 🟦 💛", which you could also draw on the wrapping so they know which package is which. Choose **Shuffle shapes** for another set, or type your own name, such as "Operation Mistletoe". Make it fun, not a giveaway. If you leave it blank, the gift gets three shapes anyway.
 - **Notes.** Anything else, for example where you hid it. Also private until it's unwrapped.
 
 Choose **Wrap it up**. The present appears under **Your gifts**, where you can **Edit** or **Remove** it, and add photos:
@@ -68,7 +68,7 @@ While giving, nobody else can see your presents, not even the receiver or a mana
 
 #### Gifts from Framblywish
 
-If your family is linked to a Framblywish family, the gifts on your giving list that you marked for Santa Pack (the **Santa Pack gift** flag, or the **For the Santa Pack** category) appear under **Your gifts** when you open the round. Only the gift's name comes over, not its notes, links or pictures. Give each one a cloaked name.
+If your family is linked to a Framblywish family, the gifts on your giving list that you marked for Santa Pack (the **Santa Pack gift** flag, or the **For the Santa Pack** category) appear under **Your gifts** when you open the round. Only the gift's name comes over, not its notes, links or pictures. Each one is cloaked as three random shapes until you change it.
 
 Until guessing starts, renaming the gift or changing who it's for in Framblywish updates it here too; a name you change here stays until you next change it there. Each gift goes into one round only. If you remove it here it won't come back, and unmarking it there doesn't remove it here. Nobody else can see it before they should.
 

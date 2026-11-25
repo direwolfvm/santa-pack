@@ -833,6 +833,30 @@ button.danger {
 .inline-form > label {
   flex: 1 1 220px;
 }
+.inline-form > .cloak-field {
+  flex: 1 1 300px;
+}
+.cloak-field__row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.cloak-field__row input {
+  flex: 1 1 auto;
+  min-width: 7em;
+  font-size: 1.15rem;
+  letter-spacing: 0.08em;
+}
+.cloak-field__row button {
+  flex: 0 0 auto;
+  width: auto;
+  white-space: nowrap;
+}
+.cloak-field__hint {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 400;
+}
 .join-code {
   font:
     800 1.6rem/1 ui-monospace,

@@ -12,6 +12,7 @@ import {
 } from '../game/rules.js';
 import { framblyGuestUid } from './framblywish.js';
 import { photoPrefix, sniffImage } from './photos.js';
+import { freshShapeName } from '../game/shapes.js';
 import { currentUser } from './auth.js';
 
 /**
@@ -313,11 +314,20 @@ export function createApi({ store, photos, framblywish, requireUser, requireAdmi
     const players = new Set(
       (await store.listMemberships(family.id)).filter((m) => m.status === 'member').map((m) => m.uid),
     );
+    const taken = (await store.listPresents(round.id)).map((p) => p.cloakedName);
     for (const gift of gifts) {
       const receiverUid = [gift.recipientId, framblyGuestUid(gift.recipientId)].find((uid) => players.has(uid));
       const giftName = gift.title.trim().slice(0, 120);
       if (!receiverUid || receiverUid === user.uid || !giftName) continue;
-      counts[await store.importPresent(round, user.uid, { giftId: gift.id, name: giftName, receiverUid })] += 1;
+      const cloakedName = freshShapeName(taken);
+      const result = await store.importPresent(round, user.uid, {
+        giftId: gift.id,
+        name: giftName,
+        receiverUid,
+        cloakedName,
+      });
+      if (result !== 'same') taken.push(cloakedName);
+      counts[result] += 1;
     }
     res.json(counts);
   });
@@ -375,6 +385,11 @@ export function createApi({ store, photos, framblywish, requireUser, requireAdmi
 
   // ---- presents ----
 
+  /** Three shapes not yet used as a cloaked name in this round. @param {string} roundId */
+  async function roundShapeName(roundId) {
+    return freshShapeName((await store.listPresents(roundId)).map((p) => p.cloakedName));
+  }
+
   api.post('/rounds/:roundId/presents', async (req, res) => {
     const { round, family, isManager } = await roundAccess(param(req, 'roundId'), currentUser(res));
     const actor = await actorFor(req, res, family.id, isManager);
@@ -391,7 +406,7 @@ export function createApi({ store, photos, framblywish, requireUser, requireAdmi
       receiverUid: input.receiverUid,
       name: input.name,
       description: input.description,
-      cloakedName: input.cloakedName,
+      cloakedName: input.cloakedName || (await roundShapeName(round.id)),
       guessUid: null,
       revealedAt: null,
     });
@@ -423,7 +438,13 @@ export function createApi({ store, photos, framblywish, requireUser, requireAdmi
 
   api.patch('/presents/:presentId', async (req, res) => {
     const edit = schemas.presentEdit.parse(req.body);
-    await changePresent(req, res, param(req, 'presentId'), 'edit', () => edit);
+    const presentId = param(req, 'presentId');
+    // Clearing the cloaked name gets a fresh set of shapes, so it is never blank.
+    if (edit.cloakedName === '') {
+      const present = await store.getPresent(presentId);
+      if (present) edit.cloakedName = await roundShapeName(present.roundId);
+    }
+    await changePresent(req, res, presentId, 'edit', () => edit);
   });
 
   api.put('/presents/:presentId/guess', async (req, res) => {

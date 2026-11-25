@@ -342,12 +342,13 @@ export function createStore(db) {
     /**
      * Add or refresh a present brought over from Framblywish. Each gift lands
      * in one round only, and only while that round is giving. A change made
-     * there is copied; a change the giver made here is left alone.
+     * there is copied; a change the giver made here is left alone. A present
+     * without a cloaked name (from before shapes) is given `cloakedName`.
      * @param {Round} round @param {string} giverUid
-     * @param {{ giftId: string, name: string, receiverUid: string }} gift
+     * @param {{ giftId: string, name: string, receiverUid: string, cloakedName: string }} gift
      * @returns {Promise<'added' | 'updated' | 'same'>}
      */
-    async importPresent(round, giverUid, { giftId, name, receiverUid }) {
+    async importPresent(round, giverUid, { giftId, name, receiverUid, cloakedName }) {
       const ref = presents.doc(`fw-${giftId}`);
       return db.runTransaction(async (tx) => {
         const [snap, dismissed, roundSnap] = await tx.getAll(ref, dismissals.doc(ref.id), rounds.doc(round.id));
@@ -362,7 +363,7 @@ export function createStore(db) {
             receiverUid,
             name,
             description: '',
-            cloakedName: '',
+            cloakedName,
             guessUid: null,
             revealedAt: null,
             sourceGiftId: giftId,
@@ -376,6 +377,7 @@ export function createStore(db) {
         const patch = {};
         if (present.source?.name !== name) patch.name = name;
         if (present.source?.receiverUid !== receiverUid) patch.receiverUid = receiverUid;
+        if (!present.cloakedName) patch.cloakedName = cloakedName;
         if (!Object.keys(patch).length) return 'same';
         tx.update(ref, { ...patch, source });
         return 'updated';

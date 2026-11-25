@@ -3,6 +3,7 @@ import { api } from '../lib/api.js';
 import { h, param, replace } from '../lib/dom.js';
 import { renderShell, requireSignedIn, showPageError } from '../lib/shell.js';
 import { photoSlot, removePhoto, uploadPhoto } from '../lib/photos.js';
+import { shapeName } from '../../../server/game/shapes.js';
 import {
   announce,
   announceError,
@@ -233,6 +234,11 @@ function givingSection() {
     others.map((m) => h('option', { value: m.uid }, m.displayName)),
   );
   const editingId = h('input', { type: 'hidden', name: 'presentId', value: '' });
+  const cloakInput = h('input', { id: 'cloakedName', name: 'cloakedName', maxlength: 120, value: shapeName() });
+  const shuffle = h('button', { type: 'button', class: 'secondary button--small' }, 'Shuffle shapes');
+  shuffle.addEventListener('click', () => {
+    cloakInput.value = shapeName();
+  });
   const submit = h('button', { type: 'submit' }, 'Wrap it up');
   const form = h(
     'form',
@@ -247,9 +253,10 @@ function givingSection() {
     ),
     h(
       'label',
-      { for: 'cloakedName' },
+      { for: 'cloakedName', class: 'cloak-field' },
       'Cloaked name (what they see while guessing)',
-      h('input', { id: 'cloakedName', name: 'cloakedName', maxlength: 120, placeholder: 'Operation Mistletoe' }),
+      h('span', { class: 'cloak-field__row' }, cloakInput, shuffle),
+      h('span', { class: 'muted cloak-field__hint' }, 'Three random shapes. Shuffle them, or type your own.'),
     ),
     h(
       'label',
@@ -266,7 +273,7 @@ function givingSection() {
     receiver.value = present.receiverUid;
     receiver.disabled = true;
     /** @type {HTMLInputElement} */ (form.elements.namedItem('name')).value = present.name ?? '';
-    /** @type {HTMLInputElement} */ (form.elements.namedItem('cloakedName')).value = present.cloakedName;
+    cloakInput.value = present.cloakedName || shapeName();
     /** @type {HTMLTextAreaElement} */ (form.elements.namedItem('description')).value = present.description ?? '';
     submit.textContent = 'Save changes';
     /** @type {HTMLInputElement} */ (form.elements.namedItem('name')).focus();
@@ -524,7 +531,7 @@ async function importGifts() {
     await load();
     announce(
       added
-        ? `${added} ${added === 1 ? 'gift' : 'gifts'} brought over from Framblywish. Give each one a cloaked name.`
+        ? `${added} ${added === 1 ? 'gift' : 'gifts'} brought over from Framblywish. Each one is cloaked as three random shapes; edit it to change that.`
         : 'Gifts updated from Framblywish.',
     );
   } catch (error) {
