@@ -14,13 +14,12 @@ if (!email) {
   process.exit(1);
 }
 
-const config = loadConfig({ ...process.env, BACKEND: 'firebase' });
-if (config.backend !== 'firebase') throw new Error('unreachable');
+const config = loadConfig(process.env);
 const { db, auth } = connectFirebase(config);
 
 const account = await auth.getUserByEmail(email).catch(() => null);
 if (!account) {
-  console.error(`No account for ${email} in tenant ${config.tenantId}. Ask them to sign up first.`);
+  console.error(`No account for ${email}. Ask them to sign up first.`);
   process.exit(1);
 }
 const ref = db.collection('users').doc(account.uid);

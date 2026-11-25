@@ -10,9 +10,7 @@
 >   - direct Firestore reads are blocked;
 >   - no console or server errors.
 >
-> **Rollback, if ever needed:** send traffic to `santa-pack-00076-tpl` (the last Supabase revision), set `DEPLOY_ENABLED=false`, and re-enable trigger `rmgpgab-santa-pack-us-east4-direwolfvm-santa-pack--mavkv`. Anything created after the cutover exists only in Firebase.
->
-> **Still to do:** step 7, after a quiet week.
+> **Step 7 done 2026-11-25.** The Supabase code, `santa-pack-preview`, the `SUPABASE_URL` / `SUPABASE_KEY` secrets and the disabled trigger are gone, so there is no rollback. On the same day Santa Pack moved to Framblywish's sign-in tenant, and its own tenant `santa-pack-y6e8u` was deleted.
 
 The runbook for switching santapack.me from the Supabase app (`BACKEND=supabase`, `web/`) to the Firebase app (`BACKEND=firebase`, `app/`). Phase 5 of [overhaul-plan.md](overhaul-plan.md).
 

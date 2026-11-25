@@ -1,7 +1,6 @@
 # Public configuration for the Cloud Run service (gcloud run deploy --env-vars-file).
 # No secrets: the Firebase web API key is a public identifier that ships to every
 # browser (allowlisted in .gitleaks.toml); access is enforced by the server.
-BACKEND: 'firebase'
 GOOGLE_CLOUD_PROJECT: 'hopeful-machine-466912-t2'
 FIRESTORE_DATABASE: 'santa-pack'
 # The sign-in shared with Framblywish: one account works on both sites.

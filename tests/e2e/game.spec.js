@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
-import { TENANT_ID } from '../../playwright.firebase.config.js';
+import { TENANT_ID } from '../../playwright.config.js';
 
 // The Node side talks to the same emulators as the server, to do what a
 // person would do outside the app (click the email link) or what an operator
