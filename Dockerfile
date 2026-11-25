@@ -11,6 +11,8 @@ COPY vite.config.js ./
 COPY app ./app
 # The Help page is built from the guide.
 COPY docs/guide.md ./docs/guide.md
+# The round page shares the cloaked-name shapes with the server.
+COPY server/game/shapes.js ./server/game/shapes.js
 RUN npm run build
 
 FROM node:22-bookworm-slim AS deps
