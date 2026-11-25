@@ -53,6 +53,12 @@ CI (`.github/workflows/ci.yml`) runs all of the above plus `npm audit`, dependen
 - **First admin:** run `node --env-file=.env scripts/seed-admin.mjs <email>`.
 - **Health:** `GET /api/health`.
 
+### Shared login and Framblywish
+
+Santa Pack uses Framblywish's Identity Platform tenant (`framblywish-ys17w`), so one account works on both sites. `santa-pack-runtime` has `identityplatform.viewer` and `santaPackSignInMailer` on that tenant.
+
+When a manager links a family, or someone opens a linked family's giving round, the server calls `FRAMBLYWISH_URL/api/santa-pack` with that person's own ID token (`server/firebase/framblywish.js`). Framblywish answers with only that person's data: families they lead and gifts they marked. Neither app can read the other's database. Presents brought over have the id `fw-<gift id>`, so each gift lands once; removing one leaves a record in `importDismissals`.
+
 ### Present photos
 
 Givers can add a photo of the gift and of it wrapped; receivers can add one of it unwrapped (see [docs/guide.md](docs/guide.md#photos)). They're stored in the private bucket `hopeful-machine-466912-t2-santa-pack-photos` (us-east4, public access prevention on), which only `santa-pack-runtime` can use (`roles/storage.objectUser` on the bucket). `PHOTOS_BUCKET` in `deploy-env.yaml` names it.

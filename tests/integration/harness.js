@@ -7,6 +7,7 @@ import { getAuth } from 'firebase-admin/auth';
 import request from 'supertest';
 import { connectFirebase } from '../../server/firebase/admin.js';
 import createFirebaseApp from '../../server/firebase/app.js';
+import { createFramblywish } from '../../server/firebase/framblywish.js';
 import { createPhotoStore } from '../../server/firebase/photos.js';
 import { createSigninMail } from '../../server/firebase/signin-mail.js';
 import { createStore } from '../../server/firebase/store.js';
@@ -48,9 +49,20 @@ export async function startHarness() {
     },
     baseUrl: BASE_URL,
   });
+  // Framblywish answers by token, as the real one does. Tests fill this in.
+  /** @type {Map<string, object>} */
+  const framblyReplies = new Map();
+  const frambly = /** @type {typeof fetch} */ (
+    async (_url, init) => {
+      const token = /** @type {Record<string, string>} */ (init?.headers ?? {}).Authorization.replace('Bearer ', '');
+      const reply = framblyReplies.get(token);
+      return new Response(JSON.stringify(reply ?? {}), { status: reply ? 200 : 500 });
+    }
+  );
   const app = createFirebaseApp({
     mail,
     photos: createPhotoStore(bucket),
+    framblywish: createFramblywish({ baseUrl: 'https://wish.test', fetchImpl: frambly }),
     store,
     auth,
     webConfig: { apiKey: 'fake', authDomain: 'localhost', projectId: PROJECT_ID, tenantId: tenant.tenantId },
@@ -112,5 +124,5 @@ export async function startHarness() {
     };
   }
 
-  return { app, db, auth, bucket, store, outbox, tenantId: tenant.tenantId, signUp, signIn, as };
+  return { app, db, auth, bucket, store, framblyReplies, outbox, tenantId: tenant.tenantId, signUp, signIn, as };
 }

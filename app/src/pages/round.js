@@ -24,6 +24,7 @@ import {
  * @typedef {{
  *   id: string, receiverUid: string, cloakedName: string, guessUid: string | null, revealed: boolean,
  *   giverUid?: string, name?: string, description?: string, correct?: boolean | null,
+ *   fromFramblywish?: boolean,
  *   photos?: Partial<Record<PhotoKind, string>>,
  * }} PresentView
  *   `photos` lists only the photos this person may see, with when each was added.
@@ -215,6 +216,7 @@ function givingSection() {
       h('h3', null, present.name ?? ''),
       h('p', { class: 'muted' }, `For ${nameOf(present.receiverUid)}`),
       h('p', null, 'Cloaked as ', h('em', null, present.cloakedName || '(no cloaked name)')),
+      present.fromFramblywish ? h('p', { class: 'muted' }, 'Brought over from Framblywish') : null,
       present.description ? h('p', { class: 'muted' }, present.description) : null,
       photoRow(present, [
         ['gift', { editable: true, hint: 'Only you see this until it’s unwrapped.' }],
@@ -512,9 +514,28 @@ function progressSection() {
   );
 }
 
+/** Bring over gifts marked for Santa Pack in Framblywish. The round works without it. */
+async function importGifts() {
+  if (view.round.stage !== 'giving' || view.me.actingAsGuest) return;
+  try {
+    /** @type {{ added: number, updated: number }} */
+    const { added, updated } = await api(`${roundPath}/import`, { method: 'POST', body: {} });
+    if (!added && !updated) return;
+    await load();
+    announce(
+      added
+        ? `${added} ${added === 1 ? 'gift' : 'gifts'} brought over from Framblywish. Give each one a cloaked name.`
+        : 'Gifts updated from Framblywish.',
+    );
+  } catch (error) {
+    announceError(error);
+  }
+}
+
 try {
   await requireSignedIn(shell);
   await load();
+  await importGifts();
 } catch (error) {
   showPageError(shell, error);
 }

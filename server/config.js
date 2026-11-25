@@ -15,6 +15,8 @@ const firebaseEnv = z.object({
   FIREBASE_AUTH_DOMAIN: z.string().min(1),
   // Private Cloud Storage bucket for present photos (server/firebase/photos.js).
   PHOTOS_BUCKET: z.string().min(1),
+  // Optional: the Framblywish site whose families and gifts can be brought over.
+  FRAMBLYWISH_URL: z.url().optional(),
   APP_BASE_URL: z.url(),
   // Comma-separated extra origins allowed to send writes (for example the run.app URL).
   APP_ADDITIONAL_ORIGINS: z.string().default(''),
@@ -52,6 +54,7 @@ export function loadConfig(env) {
       databaseId: c.FIRESTORE_DATABASE,
       tenantId: c.FIREBASE_TENANT_ID,
       photosBucket: c.PHOTOS_BUCKET,
+      framblywishUrl: c.FRAMBLYWISH_URL ? new URL(c.FRAMBLYWISH_URL).origin : null,
       webConfig: {
         apiKey: c.FIREBASE_API_KEY,
         authDomain: c.FIREBASE_AUTH_DOMAIN,

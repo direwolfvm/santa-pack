@@ -16,6 +16,7 @@ if (config.backend === 'firebase') {
   const { default: createFirebaseApp } = await import('./firebase/app.js');
   const { logSender, mailgunSender } = await import('./firebase/mail.js');
   const { createSigninMail } = await import('./firebase/signin-mail.js');
+  const { createFramblywish } = await import('./firebase/framblywish.js');
   const { createPhotoStore } = await import('./firebase/photos.js');
   const { db, auth, bucket } = connectFirebase(config);
   // Mailgun when configured; on the emulators, emails go to the log instead.
@@ -27,6 +28,7 @@ if (config.backend === 'firebase') {
   app = createFirebaseApp({
     store: createStore(db),
     photos: createPhotoStore(bucket),
+    framblywish: config.framblywishUrl ? createFramblywish({ baseUrl: config.framblywishUrl }) : undefined,
     auth,
     webConfig: config.webConfig,
     allowedOrigins: config.allowedOrigins,

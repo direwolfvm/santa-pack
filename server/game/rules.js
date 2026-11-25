@@ -17,6 +17,8 @@
  * @property {string} cloakedName
  * @property {string | null} guessUid
  * @property {string | null} revealedAt ISO timestamp, set once by the receiver.
+ * @property {string} [sourceGiftId] The Framblywish gift this was brought over from.
+ * @property {{ name: string, receiverUid: string }} [source] What Framblywish last said, to notice changes there.
  * @property {Partial<Record<PhotoKind, string>>} [photos] When each photo was added (ISO timestamp).
  *
  * @typedef {'gift' | 'wrapped' | 'unwrapped'} PhotoKind
@@ -92,6 +94,7 @@ export function projectPresent(present, stage, viewer) {
     revealed: Boolean(present.revealedAt),
     correct: present.guessUid ? present.guessUid === present.giverUid : null,
     photos: photosOf(present, PHOTO_KINDS),
+    fromFramblywish: Boolean(present.sourceGiftId),
   };
 
   if (viewer.isAdmin || stage === 'complete' || viewer.uid === present.giverUid) return full;

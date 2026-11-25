@@ -4,7 +4,9 @@
 BACKEND: 'firebase'
 GOOGLE_CLOUD_PROJECT: 'hopeful-machine-466912-t2'
 FIRESTORE_DATABASE: 'santa-pack'
-FIREBASE_TENANT_ID: 'santa-pack-y6e8u'
+# The sign-in shared with Framblywish: one account works on both sites.
+FIREBASE_TENANT_ID: 'framblywish-ys17w'
+FRAMBLYWISH_URL: 'https://wish.santapack.me'
 FIREBASE_API_KEY: 'AIzaSyC0eYv7VEZ1_0LB0DlLdy2mo2vUrNXn4Ck'
 FIREBASE_AUTH_DOMAIN: 'hopeful-machine-466912-t2.firebaseapp.com'
 # Private bucket for present photos; only santa-pack-runtime can read or write it.
