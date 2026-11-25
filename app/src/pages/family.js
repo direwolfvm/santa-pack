@@ -9,6 +9,7 @@ import { announce, confirmDialog, emptyState, onSubmit, stageBadge, table, withB
  * @typedef {{ id: string, name: string, stage: 'giving' | 'guessing' | 'complete' }} Round
  * @typedef {{
  *   family: { id: string, name: string, joinCode?: string },
+ *   framblywish: { available: boolean, linkedTo: string | null },
  *   me: { isManager: boolean },
  *   members: Member[],
  *   pending: Member[],
@@ -40,6 +41,56 @@ function actionButton(label, action, { secondary = false, confirm } = {}) {
     }),
   );
   return button;
+}
+
+/** For managers: link this family to a Framblywish family they lead. @param {FamilyView} view */
+function framblywishSection(view) {
+  const { linkedTo } = view.framblywish;
+  const choices = h('div', null);
+  const find = h(
+    'button',
+    { type: 'button', class: 'secondary button--small' },
+    linkedTo ? 'Update from Framblywish' : 'Choose a Framblywish family',
+  );
+  find.addEventListener('click', () =>
+    withBusy(find, async () => {
+      /** @type {{ id: string, name: string, people: number }[]} */
+      const families = await api('/api/framblywish/families');
+      replace(
+        choices,
+        families.length
+          ? families.map((f) =>
+              actionButton(
+                `Link ${f.name} (${f.people} people)`,
+                async () => {
+                  /** @type {{ added: number }} */
+                  const { added } = await api(`${base}/framblywish`, {
+                    method: 'POST',
+                    body: { framblywishFamilyId: f.id },
+                  });
+                  announce(`Linked. ${added} ${added === 1 ? 'person' : 'people'} added.`);
+                },
+                { confirm: `Add everyone in ${f.name} to this Santa Pack family?` },
+              ),
+            )
+          : emptyState('You don’t lead any Framblywish families.'),
+      );
+    }),
+  );
+  return h(
+    'div',
+    null,
+    h('h3', null, 'Framblywish'),
+    h(
+      'p',
+      { class: 'muted' },
+      linkedTo
+        ? `Linked to ${linkedTo}. Gifts people mark for Santa Pack there appear in this family’s open giving round.`
+        : 'Link a Framblywish family you lead to bring its people here, and the gifts they mark for Santa Pack.',
+    ),
+    find,
+    choices,
+  );
 }
 
 async function load() {
@@ -207,6 +258,7 @@ async function load() {
           'For little ones or anyone who won’t sign in. Managers give, guess and unwrap for them.',
         ),
         guestForm,
+        view.framblywish.available ? framblywishSection(view) : null,
         h('h3', null, 'Start a new round'),
         roundForm,
       ),

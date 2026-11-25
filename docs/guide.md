@@ -31,6 +31,8 @@ A family can have more than one manager. Managers belong to one family; being a 
 2. Santa Pack emails you a link from `noreply@mg.santapack.me`. Open it to confirm your email address. If it hasn't arrived after a few minutes, check your spam folder or use **Send the email again**.
 3. Back in Santa Pack, choose **I've confirmed my email**.
 
+**Already use Framblywish?** Santa Pack and Framblywish (wish.santapack.me) share one login: sign in here with the same email and password. Changing your password on one changes it on both. You sign in separately on each site.
+
 Forgot your password? On the sign-in page, open **Forgot your password?** and enter your email. The link in the email works once and expires after an hour. You can also send yourself a reset link from **your profile** (your name, top right).
 
 ### Join a family
@@ -63,6 +65,12 @@ Choose **Wrap it up**. The present appears under **Your gifts**, where you can *
 Both photos are optional. You can change gifts and photos as long as the round is in giving.
 
 While giving, nobody else can see your presents, not even the receiver or a manager. The round progress shows only how many gifts each person has wrapped, so managers can tell who still has shopping to do.
+
+#### Gifts from Framblywish
+
+If your family is linked to a Framblywish family, the gifts on your giving list that you marked for Santa Pack (the **Santa Pack gift** flag, or the **For the Santa Pack** category) appear under **Your gifts** when you open the round. Only the gift's name comes over, not its notes, links or pictures. Give each one a cloaked name.
+
+Until guessing starts, renaming the gift or changing who it's for in Framblywish updates it here too; a name you change here stays until you next change it there. Each gift goes into one round only. If you remove it here it won't come back, and unmarking it there doesn't remove it here. Nobody else can see it before they should.
 
 ### 2. Guessing
 
@@ -121,6 +129,7 @@ Your family page has an **Elf desk** with your tools:
 - **Join code.** Share it with your family. **New join code** makes a fresh one if the old one got around; the old one stops working.
 - **Waiting to join.** **Let them in** or **Decline** people who used the join code.
 - **Add someone without an account.** Enter their name and **Add player**.
+- **Framblywish.** If you lead a family there, **Choose a Framblywish family** links it and adds its people. Anyone without an account becomes a player you play for. **Update from Framblywish** adds people who joined later; it never removes anyone.
 - **Start a new round.** Name it and choose **Start round**.
 
 In the **Who's playing** list you can make someone a manager, make a manager a member again, or remove someone.

@@ -13,6 +13,7 @@ import { HttpError } from '../http.js';
  *   rounds/{id}                      { familyId, name, stage, createdAt }
  *   presents/{id}                    { roundId, familyId, giverUid, receiverUid, name, description, cloakedName, guessUid, revealedAt, createdAt }
  *   rateLimits/{sha256(key)}         { count, windowStart }
+ *   importDismissals/{presentId}     { uid, at }  (a present brought over from Framblywish, then removed: don't bring it back)
  *   audit/{auto}                     { at, uid, action, target }
  *
  * @typedef {import('firebase-admin/firestore').Firestore} Firestore
@@ -20,7 +21,7 @@ import { HttpError } from '../http.js';
  * @typedef {import('../game/rules.js').Present} Present
  * @typedef {import('../game/rules.js').Stage} Stage
  * @typedef {{ uid: string, email: string, displayName: string, role: 'user' | 'admin', disabled: boolean, createdAt: string }} User
- * @typedef {{ id: string, name: string, joinCode: string, createdAt: string }} Family
+ * @typedef {{ id: string, name: string, joinCode: string, createdAt: string, framblywish?: { id: string, name: string } }} Family
  * @typedef {{ familyId: string, uid: string, status: 'pending' | 'member', familyRole: 'member' | 'manager', createdAt: string, kind?: 'guest', displayName?: string }} Membership
  *   Guests (kind 'guest') are players without an account; their uid is 'guest-…' and managers play for them.
  * @typedef {{ id: string, familyId: string, name: string, stage: Stage, createdAt: string }} Round
@@ -51,6 +52,7 @@ export function createStore(db) {
   const memberships = db.collection('memberships');
   const rounds = db.collection('rounds');
   const presents = db.collection('presents');
+  const dismissals = db.collection('importDismissals');
 
   /** @param {string} familyId @param {string} uid */
   const membershipRef = (familyId, uid) => memberships.doc(`${familyId}_${uid}`);
@@ -84,8 +86,16 @@ export function createStore(db) {
       const ref = users.doc(token.uid);
       return db.runTransaction(async (tx) => {
         const snap = await tx.get(ref);
-        if (snap.exists) return /** @type {User} */ ({ uid: token.uid, ...snap.data() });
         const email = token.email ?? '';
+        if (snap.exists) {
+          const user = /** @type {User} */ ({ uid: token.uid, ...snap.data() });
+          // Added from a Framblywish family before they ever signed in here.
+          if (!user.email && email) {
+            tx.update(ref, { email });
+            user.email = email;
+          }
+          return user;
+        }
         const user = {
           email,
           displayName: (token.name || email.split('@')[0] || 'Elf').slice(0, 60),
@@ -230,6 +240,45 @@ export function createStore(db) {
       return membership;
     },
 
+    /**
+     * Link a family to a Framblywish family and add its people. Existing
+     * members keep their role; nobody is removed.
+     * @param {string} familyId @param {{ id: string, name: string }} linked
+     * @param {{ uid: string, name: string, guest: boolean }[]} people
+     * @returns {Promise<number>} how many people were added
+     */
+    async linkFamily(familyId, linked, people) {
+      return db.runTransaction(async (tx) => {
+        const seats = people.map((p) => membershipRef(familyId, p.uid));
+        const records = people.map((p) => users.doc(p.uid));
+        const seatSnaps = seats.length ? await tx.getAll(...seats) : [];
+        const userSnaps = records.length ? await tx.getAll(...records) : [];
+        let added = 0;
+        people.forEach((person, i) => {
+          const displayName = person.name.slice(0, 60);
+          if (!person.guest && !userSnaps[i].exists) {
+            tx.create(records[i], { email: '', displayName, role: 'user', disabled: false, createdAt: now() });
+          }
+          const seat = seatSnaps[i].data();
+          if (seat) {
+            if (seat.status === 'pending') tx.update(seats[i], { status: 'member' });
+            return;
+          }
+          added += 1;
+          tx.create(seats[i], {
+            familyId,
+            uid: person.uid,
+            status: 'member',
+            familyRole: 'member',
+            createdAt: now(),
+            ...(person.guest ? { kind: 'guest', displayName } : {}),
+          });
+        });
+        tx.update(families.doc(familyId), { framblywish: linked });
+        return added;
+      });
+    },
+
     /** @param {string} familyId @param {string} uid */
     async deleteMembership(familyId, uid) {
       await membershipRef(familyId, uid).delete();
@@ -290,6 +339,49 @@ export function createStore(db) {
       return { id: ref.id, ...present };
     },
 
+    /**
+     * Add or refresh a present brought over from Framblywish. Each gift lands
+     * in one round only, and only while that round is giving. A change made
+     * there is copied; a change the giver made here is left alone.
+     * @param {Round} round @param {string} giverUid
+     * @param {{ giftId: string, name: string, receiverUid: string }} gift
+     * @returns {Promise<'added' | 'updated' | 'same'>}
+     */
+    async importPresent(round, giverUid, { giftId, name, receiverUid }) {
+      const ref = presents.doc(`fw-${giftId}`);
+      return db.runTransaction(async (tx) => {
+        const [snap, dismissed, roundSnap] = await tx.getAll(ref, dismissals.doc(ref.id), rounds.doc(round.id));
+        if (dismissed.exists || roundSnap.data()?.stage !== 'giving') return 'same';
+        const present = /** @type {Present | null} */ (withId(snap));
+        const source = { name, receiverUid };
+        if (!present) {
+          tx.create(ref, {
+            roundId: round.id,
+            familyId: round.familyId,
+            giverUid,
+            receiverUid,
+            name,
+            description: '',
+            cloakedName: '',
+            guessUid: null,
+            revealedAt: null,
+            sourceGiftId: giftId,
+            source,
+            createdAt: now(),
+          });
+          return 'added';
+        }
+        if (present.roundId !== round.id || present.giverUid !== giverUid) return 'same';
+        /** @type {Partial<Present>} */
+        const patch = {};
+        if (present.source?.name !== name) patch.name = name;
+        if (present.source?.receiverUid !== receiverUid) patch.receiverUid = receiverUid;
+        if (!Object.keys(patch).length) return 'same';
+        tx.update(ref, { ...patch, source });
+        return 'updated';
+      });
+    },
+
     /** @param {string} id @returns {Promise<Present | null>} */
     async getPresent(id) {
       return withId(await presents.doc(id).get());
@@ -332,6 +424,7 @@ export function createStore(db) {
         if (!round) throw new HttpError(404, 'That gift round no longer exists.');
         check(present, round);
         tx.delete(ref);
+        if (present.sourceGiftId) tx.set(dismissals.doc(id), { uid: present.giverUid, at: now() });
       });
     },
 

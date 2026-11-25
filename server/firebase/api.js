@@ -10,6 +10,7 @@ import {
   roundProgress,
   STAGES,
 } from '../game/rules.js';
+import { framblyGuestUid } from './framblywish.js';
 import { photoPrefix, sniffImage } from './photos.js';
 import { currentUser } from './auth.js';
 
@@ -40,6 +41,7 @@ const schemas = {
       .regex(/^[A-Z0-9]{8}$/, 'Join codes are 8 letters and numbers.'),
   }),
   name: z.object({ name }),
+  linkFamily: z.object({ framblywishFamilyId: id }),
   familyRole: z.object({ familyRole: z.enum(['member', 'manager']) }),
   stage: z.object({ stage: z.enum(STAGES) }),
   newPresent: z.object({
@@ -75,11 +77,12 @@ const viewerOf = (res) => {
  * @param {{
  *   store: Store,
  *   photos: import('./photos.js').PhotoStore,
+ *   framblywish?: import('./framblywish.js').Framblywish,
  *   requireUser: import('express').RequestHandler,
  *   requireAdmin: import('express').RequestHandler,
  * }} deps
  */
-export function createApi({ store, photos, requireUser, requireAdmin }) {
+export function createApi({ store, photos, framblywish, requireUser, requireAdmin }) {
   const api = Router();
 
   /**
@@ -195,6 +198,7 @@ export function createApi({ store, photos, requireUser, requireAdmin }) {
     const people = await describeMembers(all);
     res.json({
       family: { id: family.id, name: family.name, ...(isManager ? { joinCode: family.joinCode } : {}) },
+      framblywish: { available: Boolean(framblywish), linkedTo: family.framblywish?.name ?? null },
       me: { isManager, familyRole: membership?.familyRole ?? null },
       members: people.filter((p) => p.status === 'member'),
       pending: isManager ? people.filter((p) => p.status === 'pending') : [],
@@ -264,6 +268,58 @@ export function createApi({ store, photos, requireUser, requireAdmin }) {
     await store.deleteMembership(familyId, uid);
     await store.audit(user.uid, 'member.remove', { familyId, uid });
     res.status(204).end();
+  });
+
+  // ---- Framblywish ----
+
+  /** What Framblywish says about the caller, asked with their own token. @param {import('express').Request} req */
+  async function askFramblywish(req) {
+    if (!framblywish) throw new HttpError(404, 'Framblywish is not connected.');
+    await store.consumeRateLimit(`framblywish:${currentUser(/** @type {Response} */ (req.res)).uid}`, 120, 60 * 60_000);
+    return framblywish.load(req.get('authorization') ?? '');
+  }
+
+  // The Framblywish families the caller leads, to choose one to link.
+  api.get('/framblywish/families', async (req, res) => {
+    const { families } = await askFramblywish(req);
+    res.json(families.map((f) => ({ id: f.id, name: f.name, people: f.people.length })));
+  });
+
+  // Link (or refresh). Needs to manage this family and lead that one.
+  api.post('/families/:familyId/framblywish', async (req, res) => {
+    const { family } = await familyAccess(param(req, 'familyId'), currentUser(res), { manager: true });
+    const { framblywishFamilyId } = schemas.linkFamily.parse(req.body);
+    const source = (await askFramblywish(req)).families.find((f) => f.id === framblywishFamilyId);
+    if (!source) throw new HttpError(403, 'Only someone who leads that Framblywish family can link it.');
+    const added = await store.linkFamily(
+      family.id,
+      { id: source.id, name: source.name },
+      source.people.map((p) => ({ uid: p.account ? p.id : framblyGuestUid(p.id), name: p.name, guest: !p.account })),
+    );
+    await store.audit(currentUser(res).uid, 'family.link', { familyId: family.id, framblywishFamilyId, added });
+    res.json({ linkedTo: source.name, added });
+  });
+
+  // Bring over the caller's own marked gifts for people in this family.
+  api.post('/rounds/:roundId/import', async (req, res) => {
+    const user = currentUser(res);
+    const { round, family, membership } = await roundAccess(param(req, 'roundId'), user);
+    const counts = { added: 0, updated: 0, same: 0 };
+    if (round.stage !== 'giving' || !family.framblywish || membership?.status !== 'member') {
+      res.json(counts);
+      return;
+    }
+    const { gifts } = await askFramblywish(req);
+    const players = new Set(
+      (await store.listMemberships(family.id)).filter((m) => m.status === 'member').map((m) => m.uid),
+    );
+    for (const gift of gifts) {
+      const receiverUid = [gift.recipientId, framblyGuestUid(gift.recipientId)].find((uid) => players.has(uid));
+      const giftName = gift.title.trim().slice(0, 120);
+      if (!receiverUid || receiverUid === user.uid || !giftName) continue;
+      counts[await store.importPresent(round, user.uid, { giftId: gift.id, name: giftName, receiverUid })] += 1;
+    }
+    res.json(counts);
   });
 
   // ---- rounds ----
